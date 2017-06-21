@@ -72,10 +72,10 @@ sub info {
       LEFT JOIN vacations_employees ve ON (ve.tid=vm.tid)
       WHERE vm.uid= ?",
     undef,
-    { Bind => [ $uid ] }
+    { INFO => 1, Bind => [ $uid ] }
   );
 
-  return $self->{list};
+  return $self;
 }
 
 #**********************************************************
@@ -104,13 +104,13 @@ sub main_info {
 #**********************************************************
 sub emp_info {
   my $self = shift;
-  my ($tid) = @_;
+  my ($tid, $attr) = @_;
 
-  $self->query2("SELECT tid
+  $self->query2("SELECT tid, surname
       FROM vacations_employees
       WHERE tid= ?",
     undef,
-    { Bind => [ $tid ] }
+    { Bind => [ $tid ], COLS_NAME => 1 }
   );
 
   return $self->{list};
@@ -158,5 +158,23 @@ sub truncate_table {
   $self->query2("TRUNCATE TABLE $table_name;", 'do');
   return $self;
 }
+
+#**********************************************************
+
+=head2 user_add($attr)
+=cut
+
+#**********************************************************
+sub user_add {
+  my $self = shift;
+  my ($attr) = @_;
+  
+  $self->query_add('vacations_main', $attr);
+  return [ ] if ($self->{errno});
+  
+  return $self;
+}
+
+
 
 1

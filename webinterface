@@ -16,7 +16,7 @@ our(
   %lang,
   $html,
   $admin,
-  $users,
+  $user,
   $db,
   %conf,
   @MODULES,
@@ -32,6 +32,10 @@ my $User = Users->new($db, $admin, \%conf);
 =cut
 #**********************************************************
 sub vacations_user_info {
+  
+  $Vacations->info($user->{UID});
+  $Vacations->{CHANGE_PASSWORD} = $html->button($lang{CHANGE_PASSWORD}, "index=17&sid=$sid", { class => 'btn btn-sm btn-primary' });
+  $html->tpl_show(_include('vacations_user_info', 'Vacations'), $Vacations);
 
   return 1;
 }
@@ -44,18 +48,18 @@ sub vacations_user_info {
 sub vacations_registration {
   
   if ( $FORM{reg} ) {
-    if ($FORM{EMAIL} !~ /^(([^<>()[\]\\.,;:\s\@\"]+(\.[^<>()[\]\\.,;:\s\@\"]+)*)|(\".+\"))\@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/) {
-      $Vacations->{MESSAGE} = $html->message('err', $lang{ERROR}, "$lang{ERR_WRONG_EMAIL}");
-    }
-    elsif ($FORM{TID}) {
+#    if (!$FORM{EMAIL} || $FORM{EMAIL} !~ /^(([^<>()[\]\\.,;:\s\@\"]+(\.[^<>()[\]\\.,;:\s\@\"]+)*)|(\".+\"))\@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/) {
+#      $Vacations->{MESSAGE} = $html->message('err', $lang{ERROR}, "$lang{ERR_WRONG_EMAIL}");
+#    }
+    if ($FORM{TID}) {
       my $main_info = $Vacations->main_info($FORM{TID});
       if ($Vacations->{TOTAL}) {
-        $Vacations->{MESSAGE} = $html->message('warn', $lang{ERROR}, "Пользователь с табельным номером $FORM{tid} уже зарегистрирован.");
+        $Vacations->{MESSAGE} = $html->message('warn', $lang{ERROR}, "Пользователь с табельным номером $FORM{TID} уже зарегистрирован.");
       }
       else {
         my $emp_info = $Vacations->emp_info($FORM{TID});
         if (!$Vacations->{TOTAL}) {
-          $Vacations->{MESSAGE} = $html->message('warn', $lang{ERROR}, "Табельный номер $FORM{tid} не найден.");
+          $Vacations->{MESSAGE} = $html->message('warn', $lang{ERROR}, "Табельный номер $FORM{TID} не найден.");
         }
         else {
           if ( !$FORM{SURNAME} ) {
@@ -65,13 +69,14 @@ sub vacations_registration {
             $Vacations->{MESSAGE} = $html->message('warn', $lang{ERROR}, "Фамилия и табельный номер не совпадают.");
           }
           else {
-            $User->add({ LOGIN => $FORM{TID} });
+            my $password = mk_unique_value($conf{PASSWD_LENGTH} || 6, { EXTRA_RULES => '0:0' });
+            $User->add({ LOGIN => $FORM{TID}, PASSWORD => $password });
             _error_show($User);
 
             my $uid = $User->{INSERT_ID};
     
             if ( $User->{errno} ) {
-              $html->message('err', "$lang{ERROR}", "Ошибка при создании пользователя $login");
+              $html->message('err', "$lang{ERROR}", "Ошибка при создании пользователя $FORM{TID}");
               return 0;
             }
 
@@ -85,10 +90,10 @@ sub vacations_registration {
               $html->message('err', "$lang{ERROR}", "Ошибка связывания записей.");
             }
             else {
-              $html->message('info', "$lang{SUCCESS}", "Пользователь $login успешно зарегистрирован.");
+              $html->message('info', "$lang{SUCCESS}", "Пользователь $FORM{TID} успешно зарегистрирован.");
               my $login_url = $SELF_URL;
               $login_url =~ s/registration/index/;
-              print "Location: $login_url\n\n";
+              print "Location: $login_url?user=$FORM{TID}&passwd=$password\n\n";
               return 1;
             }
           }
@@ -96,9 +101,12 @@ sub vacations_registration {
 
       }
     }
+    else {
+      $Vacations->{MESSAGE} = $html->message('warn', $lang{ERROR}, "Укажите табельный номер.");
+    }
   }
 
-  $html->tplshow();
+  $html->tpl_show(_include('vacations_user_registration', 'Vacations'), { %{$Vacations}, %FORM }, { ID => 'VACATIONS_REGISTRATION' });
   
 
   return 1;
