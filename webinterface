@@ -1,0 +1,186 @@
+#!perl
+=head1 NAME
+
+  Vacations module
+
+=cut
+
+
+use strict;
+use warnings FATAL => 'all';
+
+use Vacations::db::Vacations;
+use Abills::Base qw/_bp/;
+
+our(
+  %lang,
+  $html,
+  $admin,
+  $db,
+  %conf,
+  @MODULES,
+);
+
+my $Vacations = Vacations->new($db, $admin, \%conf);
+
+
+#**********************************************************
+=head2 vacations_user_info($attr)
+
+=cut
+#**********************************************************
+sub vacations_user_info {
+
+  return 1;
+}
+
+#**********************************************************
+=head2 vacations_registration($attr)
+
+=cut
+#**********************************************************
+sub vacations_registration {
+
+  
+
+  return 1;
+}
+
+
+#**********************************************************
+=head2 orders_import($attr)
+
+=cut
+#**********************************************************
+sub orders_import {
+  my $filename = '/usr/abills/var/vacation_orders.csv';
+  my @ColumnNames = ('TID', 'ORDER_ID', 'ORDER_DATE', 'VCT_START', 'VCT_END', 'VCT_DAYS', 'USED');
+
+  $Vacations->truncate_table('vacations_orders');
+
+  open FILE, "< $filename" or die  "Can't open $filename : $!";
+
+  my $columns = <FILE>;
+
+  while (<FILE>) {
+    chomp $_;
+    my %hash;
+    @hash{@ColumnNames} = split (';');
+    $hash{ORDER_DATE} = _str_to_date($hash{ORDER_DATE});
+    $hash{VCT_START} = _str_to_date($hash{VCT_START});
+    $hash{VCT_END} = _str_to_date($hash{VCT_END});
+
+    $Vacations->add('vacations_orders', \%hash);
+    _error_show($Vacations);
+  }
+
+  close FILE;
+  return 1;
+
+}
+
+#**********************************************************
+=head2 holidays_import($attr)
+
+=cut
+#**********************************************************
+sub holidays_import {
+  my $filename = '/usr/abills/var/Holidays.csv';
+  my @ColumnNames = ('DATE', 'WORKDAY');
+
+  $Vacations->truncate_table('vacations_holidays');
+
+  open FILE, "< $filename" or die  "Can't open $filename : $!";
+
+  my $columns = <FILE>;
+
+  while (<FILE>) {
+    chomp $_;
+    my %hash;
+    @hash{@ColumnNames} = split (';');
+    $hash{DATE} = _str_to_date($hash{DATE});
+
+    $Vacations->add('vacations_holidays', \%hash);
+    _error_show($Vacations);
+  }
+
+  close FILE;
+  return 1;
+
+}
+
+#**********************************************************
+=head2 accrued_import($attr)
+
+=cut
+#**********************************************************
+sub accrued_import {
+  my $filename = '/usr/abills/var/vacation_acrule_periods.csv';
+  my @ColumnNames = ('TID', 'START_PERIOD', 'END_PERIOD', 'DAYS_ACCRUED', 'DAYS_USED');
+
+  $Vacations->truncate_table('vacations_accrued_periods');
+
+  open FILE, "< $filename" or die  "Can't open $filename : $!";
+
+  my $columns = <FILE>;
+
+  while (<FILE>) {
+    chomp $_;
+    my %hash;
+    @hash{@ColumnNames} = split (';');
+    $hash{START_PERIOD} = _str_to_date($hash{START_PERIOD});
+    $hash{END_PERIOD} = _str_to_date($hash{END_PERIOD});
+
+    $Vacations->add('vacations_accrued_periods', \%hash);
+    _error_show($Vacations);
+  }
+
+  close FILE;
+  return 1;
+
+}
+
+#**********************************************************
+=head2 orders_import($attr)
+
+=cut
+#**********************************************************
+sub employees_import {
+  my $filename = '/usr/abills/var/employees.csv';
+  my @ColumnNames = ('TID', 'SURNAME', 'NAME', 'MID_NAME', 'SURNAME_GENETIVE', 'START_DATE', 'POSITION', 'VCT_DAYS', 'COMPANY', 'VCT_LEFT');
+
+  $Vacations->truncate_table('vacations_employees');
+
+  open FILE, "< $filename" or die  "Can't open $filename : $!";
+
+  my $columns = <FILE>;
+
+  while (<FILE>) {
+    chomp $_;
+    my %hash;
+    @hash{@ColumnNames} = split (';');
+    $hash{START_DATE} = _str_to_date($hash{START_DATE});
+
+    $Vacations->add('vacations_employees', \%hash);
+    _error_show($Vacations);
+  }
+
+  close FILE;
+  return 1;
+
+}
+
+#**********************************************************
+=head2 _str_to_date($attr)
+
+convert 01.02.17 to 2017-02-01
+
+=cut
+#**********************************************************
+sub _str_to_date {
+  my ($str) = @_;
+  return "20" . join '-', reverse split '\.', $str;
+}
+
+
+1
