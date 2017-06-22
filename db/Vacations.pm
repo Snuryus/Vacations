@@ -87,11 +87,11 @@ sub main_info {
   my $self = shift;
   my ($tid) = @_;
 
-  $self->query2("SELECT uid, tid
+  $self->query2("SELECT uid, tid, role
       FROM vacations_main
       WHERE tid= ?",
     undef,
-    { Bind => [ $tid ] }
+    { Bind => [ $tid ], COLS_NAME => 1 }
   );
 
   return $self->{list};
@@ -175,6 +175,52 @@ sub user_add {
   return $self;
 }
 
+#**********************************************************
+=head2 orders_list($uid, $attr)
 
+=cut
+#**********************************************************
+sub orders_list {
+  my $self = shift;
+  my ($tid) = @_;
+
+  $self->query2("SELECT tid,
+    order_id,
+    order_date,
+    vct_start,
+    vct_end,
+    vct_days,
+    used
+      FROM vacations_orders
+      WHERE tid= ?",
+    undef,
+    { Bind => [ $tid ], COLS_NAME => 1 }
+  );
+
+  return $self->{list};
+}
+
+#**********************************************************
+=head2 periods_list($uid, $attr)
+
+=cut
+#**********************************************************
+sub periods_list {
+  my $self = shift;
+  my ($tid) = @_;
+
+  $self->query2("SELECT tid,
+    start_period,
+    end_period,
+    days_accrued,
+    days_used
+      FROM vacations_accrued_periods
+      WHERE tid= ?",
+    undef,
+    { Bind => [ $tid ], COLS_NAME => 1 }
+  );
+
+  return $self->{list};
+}
 
 1

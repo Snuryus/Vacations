@@ -18,9 +18,9 @@
           <div class="form-group-lg">
             <input id='TID' name='TID' value='%TID%' placeholder='Табельный номер' class='form-control' type='text'>
           </div>
-          <!--div class="form-group">
+          <div class="form-group">
             <input id='EMAIL' name='EMAIL' value='%EMAIL%' placeholder='E-MAIL' class='form-control' type='text'>
-          </div-->
+          </div>
         </div>
       </div>
     </div>
