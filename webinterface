@@ -10,7 +10,7 @@ use strict;
 use warnings FATAL => 'all';
 
 use Vacations::db::Vacations;
-use Abills::Base qw/_bp/;
+use Abills::Base qw/_bp sendmail/;
 
 our(
   %lang,
@@ -42,9 +42,9 @@ sub vacations_user_info {
   }
 
   $Vacations->info($user->{UID});
-  
-  if(!$Vacations->{TID}) {
-    $html->message('warn', $lang{WARNING}, "Ваш доступ еще не подтвержден. Обратитесь к администратору.");
+
+  if($Vacations->{ROLE} < 1) {
+    $html->message('warn', $lang{WARNING}, "Ваш доступ заблокирован. Обратитесь к администратору.");
     return 1;
   }
 
@@ -98,19 +98,19 @@ sub vacations_registration {
             $User->pi_add({ UID => $uid, EMAIL => $FORM{EMAIL} });
             _error_show($User);
 
-#            $Vacations->user_add({ TID => $FORM{TID}, UID => $uid });
-#            _error_show($Vacations);
+            $Vacations->user_add({ TID => $FORM{TID}, UID => $uid });
+            _error_show($Vacations);
 
-#            if ( $Vacations->{errno} ) {
-#              $html->message('err', "$lang{ERROR}", "Ошибка связывания записей.");
-#            }
-#            else {
+            if ( $Vacations->{errno} ) {
+              $html->message('err', "$lang{ERROR}", "Обратитесь к администратору.");
+            }
+            else {
               $html->message('info', "$lang{SUCCESS}", "Пользователь $FORM{TID} успешно зарегистрирован.");
               my $login_url = $SELF_URL;
               $login_url =~ s/registration/index/;
               print "Location: $login_url?user=$FORM{TID}&passwd=$password&first_login=1\n\n";
               return 1;
-#            }
+            }
           }
         }
 
@@ -271,8 +271,8 @@ sub _str_to_date {
 sub vct_history {
   
   $Vacations->info($user->{UID});
-  if(!$Vacations->{TID}) {
-    $html->message('warn', $lang{WARNING}, "Ваш доступ еще не подтвержден. Обратитесь к администратору.");
+  if($Vacations->{ROLE} < 1) {
+    $html->message('warn', $lang{WARNING}, "Ваш доступ заблокирован. Обратитесь к администратору.");
     return 1;
   }
 
@@ -308,8 +308,8 @@ sub vct_history {
 sub vct_periods {
 
   $Vacations->info($user->{UID});
-  if(!$Vacations->{TID}) {
-    $html->message('warn', $lang{WARNING}, "Ваш доступ еще не подтвержден. Обратитесь к администратору.");
+  if($Vacations->{ROLE} < 1) {
+    $html->message('warn', $lang{WARNING}, "Ваш доступ заблокирован. Обратитесь к администратору.");
     return 1;
   }
 
@@ -335,13 +335,12 @@ sub vct_periods {
   $table->addrow("Всего:", '', $total_days_accrued, $total_days_used );
 
   print $table->show();
-
   
   return 1;
 }
 
 #**********************************************************
-=head2 user_role($tid)
+=head2 user_role($uid)
 
 =cut
 #**********************************************************
@@ -360,6 +359,84 @@ sub user_role {
 #**********************************************************
 sub vacations_users_list {
 
+  my $u_role = user_role($user->{UID});
+  
+  if($FORM{DELETE} && $u_role == 3 ) {
+    $Vacations->user_del($FORM{DELETE}, 'users_pi');
+    $Vacations->user_del($FORM{DELETE}, 'vacations_main');
+    $Vacations->user_del($FORM{DELETE}, 'users');
+  }
+  elsif($FORM{ROLE_2}) {
+    $Vacations->user_change($FORM{ROLE_2}, '2');
+  }
+  elsif($FORM{ROLE_1}) {
+    $Vacations->user_change($FORM{ROLE_1}, '1');
+  }
+  elsif($FORM{ENABLE}) {
+    $Vacations->user_change($FORM{ENABLE}, '1');
+  }
+  elsif($FORM{DISABLE}) {
+    $Vacations->user_change($FORM{DISABLE}, '0');
+  }
+  elsif($FORM{NEW_EMAIL}) {
+    $User->pi_change({ UID => $FORM{CHG_EMAIL}, EMAIL => $FORM{NEW_EMAIL} });
+    _error_show($User);
+  }
+  elsif($FORM{CHG_EMAIL}) {
+    $Vacations->info($FORM{CHG_EMAIL});
+    $html->tpl_show(_include('vacations_change_email', 'Vacations'), { %$Vacations, %FORM });
+  }
+  elsif($FORM{NEW_PSWD}) {
+    $User->change($FORM{CHG_PSWD}, { UID => $FORM{CHG_PSWD}, PASSWORD => $FORM{NEW_PSWD} });
+    if ($FORM{SEND_EMAIL}) {
+      $Vacations->info($FORM{CHG_PSWD});
+      my $message = "LOGIN: $Vacations->{TID}\nPASSWORD: $FORM{NEW_PSWD}";
+      print $html->header();
+      sendmail("$conf{ADMIN_MAIL}", "$Vacations->{EMAIL}", "Password Recovery", "$message", "$conf{MAIL_CHARSET}", "", {TEST => 1});
+    }
+  }
+  elsif($FORM{CHG_PSWD}) {
+    $Vacations->info($FORM{CHG_PSWD});
+    $html->tpl_show(_include('vacations_change_pswd', 'Vacations'), { %$Vacations, %FORM });
+  }
+
+  my $user_list = $Vacations->users_list();
+  
+  my $table = $html->table({
+    width         => '100%',
+    caption       => "Список пользователей",
+    border        => 1,
+    title_plain   => [ "Табельный номер", "ФИО", "E-mail", "Права доступа", "", "" ],
+    ID            => 'users',
+  });
+
+  foreach my $user_line ( @$user_list ) {
+    my $delete_button = $html->button("Удалить", "index=$index&DELETE=$user_line->{uid}&sid=$sid", { class => 'del' }) if ($u_role == 3);
+    my $block_button = $html->button("заблокировать", "index=$index&DISABLE=$user_line->{uid}&sid=$sid", { class => '_on' });
+    
+    my $fio = "$user_line->{surname} $user_line->{name} $user_line->{mid_name}";
+    my $chg_pswd_button = $html->button("изменить пароль", "index=$index&CHG_PSWD=$user_line->{uid}&sid=$sid", { class => 'password' });
+    my $chg_email_button = $html->button($user_line->{email} || "Не указано", "index=$index&CHG_EMAIL=$user_line->{uid}&sid=$sid");
+    
+    if (!$user_line->{tid}) {
+      $table->addrow($user_line->{login}, "Не найдено соответствующего сотрудника", '', '', '', '', $delete_button);
+    }
+    else {
+      my @roles = ("Заблокирован", 
+        $html->button("Сотрудник", "index=$index&ROLE_2=$user_line->{uid}&sid=$sid"),
+        $html->button("Администратор", "index=$index&ROLE_1=$user_line->{uid}&sid=$sid"),
+        "Системный администратор"
+      );
+      my $chg_role_button = $roles[$user_line->{role}];
+      if ($user_line->{role} == 0) {
+        $block_button = $html->button("разблокировать", "index=$index&ENABLE=$user_line->{uid}&sid=$sid",  { class => 'off' });  
+      }
+      $table->addrow($user_line->{login}, $fio, $chg_email_button, $chg_role_button, $chg_pswd_button, $block_button,  $delete_button);
+    }
+  }
+
+  print $table->show();
+
   return 1;
 }
 
@@ -369,6 +446,63 @@ sub vacations_users_list {
 =cut
 #**********************************************************
 sub vacations_emp_list {
+
+  if ($FORM{EMAIL} && $FORM{TID}) {
+    my $password = mk_unique_value($conf{PASSWD_LENGTH} || 6, { EXTRA_RULES => '0:0' });
+    $User->add({ LOGIN => $FORM{TID}, PASSWORD => $password });
+    _error_show($User);
+
+    my $uid = $User->{INSERT_ID};
+    
+    if ( $User->{errno} ) {
+      $html->message('err', "$lang{ERROR}", "Ошибка при создании пользователя $FORM{TID}");
+      return 0;
+    }
+
+    $User->pi_add({ UID => $uid, EMAIL => $FORM{EMAIL} });
+    _error_show($User);
+
+    $Vacations->user_add({ TID => $FORM{TID}, UID => $uid });
+    _error_show($Vacations);
+
+    if ($FORM{SEND_EMAIL}) {
+      my $message = "LOGIN: $FORM{TID}\nPASSWORD: $password";
+      print $html->header();
+      sendmail("$conf{ADMIN_MAIL}", "$FORM{EMAIL}", "Password Recovery", "$message", "$conf{MAIL_CHARSET}", "", {TEST => 1});
+
+    }
+  }
+  elsif ($FORM{USER_ADD}) {
+    $html->tpl_show(_include('vacations_user_reg', 'Vacations'), { TID => $FORM{USER_ADD}, %FORM });
+  }
+
+
+  my $emp_list = $Vacations->emp_list();
+  my @roles = ("Заблокирован", "Сотрудник", "Администратор", "Системный администратор");
+  
+  my $table = $html->table({
+    width         => '100%',
+    caption       => "Список сотрудников",
+    border        => 1,
+    title_plain   => [ "Табельный номер", "ФИО", "Пользователь"],
+    ID            => 'employees',
+  });
+
+  foreach my $emp_line ( @$emp_list ) {
+    my $fio = "$emp_line->{surname} $emp_line->{name} $emp_line->{mid_name}";
+    if ($emp_line->{uid}) {
+      $table->addrow($emp_line->{tid}, $fio, $roles[$emp_line->{role}]);
+    }
+    else {
+      my $user_add_button = $html->button("Создать аккаунт", "index=$index&USER_ADD=$emp_line->{tid}&SURNAME=$emp_line->{surname}&sid=$sid", { class => 'btn btn-xs btn-success' });
+      $table->addrow($emp_line->{tid}, $fio, $user_add_button);
+    }
+  }
+
+  print $table->show();
+
+  return 1;
+
 
   return 1;
 }

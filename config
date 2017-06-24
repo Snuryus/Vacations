@@ -13,11 +13,11 @@
 if ( defined( $user->{UID} ) ){
   load_module( "Vacations", $html );
   my $role = user_role($user->{UID});
-  if ( $role > 0 ) {
+  if ( $role > 1 ) {
     $USER_FUNCTION_LIST{"40:0:Список пользователей:vacations_users_list:"} = 0;
     $USER_FUNCTION_LIST{"50:0:Список сотрудников:vacations_emp_list:"} = 0;
   }
-  if ( $role == 2) {
+  if ( $role == 3) {
     $USER_FUNCTION_LIST{"60:0:Импорт данных:null:"} = 0;
     $USER_FUNCTION_LIST{"61:60:Праздники:holidays_import:"} = 0;
     $USER_FUNCTION_LIST{"62:60:Приказы:orders_import:"} = 0;

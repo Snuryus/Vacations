@@ -41,20 +41,50 @@ sub new {
 }
 
 #**********************************************************
+=head2 users_list($uid, $attr)
+
+=cut
+#**********************************************************
+sub users_list {
+  my $self = shift;
+
+  $self->query2("SELECT u.uid,
+    u.id AS login,
+    pi.email,
+    vm.tid,
+    vm.role,
+    ve.surname AS surname,
+    ve.name AS name,
+    ve.mid_name AS mid_name,
+    ve.surname_genetive as gen_surname,
+    ve.start_date,
+    ve.position,
+    ve.vct_days AS total_days_used,
+    ve.vct_left AS total_days_left
+      FROM users u
+      LEFT JOIN users_pi pi ON (u.uid=pi.uid)
+      LEFT JOIN vacations_main vm ON (u.uid=vm.uid)
+      LEFT JOIN vacations_employees ve ON (ve.tid=vm.tid)
+      ORDER BY 4",
+    undef,
+    { COLS_NAME => 1 }
+  );
+
+  return $self->{list};
+}
+
+#**********************************************************
 =head2 info($uid, $attr)
 
 =cut
 #**********************************************************
 sub info {
   my $self = shift;
-  my ($uid, $attr) = @_;
-
-  my $password = "''";
-  if ($attr->{SHOW_PASSWORD}) {
-    $password = "DECODE(u.password, '$self->{conf}->{secretkey}') AS password";
-  }
+  my ($uid) = @_;
 
   $self->query2("SELECT vm.uid,
+    u.id AS login,
+    pi.email,
     vm.tid,
     vm.role,
     ve.surname AS surname,
@@ -65,10 +95,10 @@ sub info {
     ve.position,
     ve.vct_days AS total_days_used,
     ve.vct_left AS total_days_left,
-    ve.company,
-    $password
+    ve.company
       FROM vacations_main vm
       LEFT JOIN users u ON (u.uid=vm.uid)
+      LEFT JOIN users_pi pi ON (vm.uid=pi.uid)
       LEFT JOIN vacations_employees ve ON (ve.tid=vm.tid)
       WHERE vm.uid= ?",
     undef,
@@ -127,8 +157,23 @@ sub emp_info {
 
 =cut
 #**********************************************************
-sub vacations_users_list {
+sub emp_list {
+  my $self = shift;
 
+  $self->query2("SELECT ve.tid,
+    ve.surname,
+    ve.name,
+    ve.mid_name,
+    ve.start_date,
+    vm.uid,
+    vm.role
+      FROM vacations_employees ve
+      LEFT JOIN vacations_main vm ON (vm.tid=ve.tid)",
+    undef,
+    { COLS_NAME => 1 }
+  );
+
+  return $self->{list};
 }
 
 #**********************************************************
@@ -160,10 +205,9 @@ sub truncate_table {
 }
 
 #**********************************************************
-
 =head2 user_add($attr)
-=cut
 
+=cut
 #**********************************************************
 sub user_add {
   my $self = shift;
@@ -171,6 +215,44 @@ sub user_add {
   
   $self->query_add('vacations_main', $attr);
   return [ ] if ($self->{errno});
+  
+  return $self;
+}
+
+#**********************************************************
+=head2 user_del($uid, $table)
+
+=cut
+#**********************************************************
+sub user_del {
+  my $self = shift;
+  my ($uid, $table_name) = @_;
+  
+  $self->query2( "DELETE 
+    FROM $table_name 
+    WHERE uid= ?",
+    'do', 
+    { Bind => [ $uid ] } 
+  );
+  
+  return $self;
+}
+
+#**********************************************************
+=head2 user_change($uid, $role)
+
+=cut
+#**********************************************************
+sub user_change {
+  my $self = shift;
+  my ($uid, $role) = @_;
+
+  $self->query2( "UPDATE vacations_main
+    SET role= $role 
+    WHERE uid= $uid",
+    'do', 
+    { } 
+  );
   
   return $self;
 }
