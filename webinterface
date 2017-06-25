@@ -32,22 +32,48 @@ my $User = Users->new($db, $admin, \%conf);
 =cut
 #**********************************************************
 sub vacations_user_info {
-
-  if ($FORM{CHANGE_PASSWORD} || $FORM{newpassword}) {
-    form_passwd();
-  }
-
+  
   if ($FORM{first_login} && $FORM{passwd} && $FORM{user}) {
     $html->message('info', $lang{INFO}, "Ваш логин: $FORM{user}\nВаш пароль: $FORM{passwd}");
   }
 
   $Vacations->info($user->{UID});
+  
+  if ($FORM{CHANGE_PASSWORD} || $FORM{newpassword}) {
+    form_passwd();
+  }
+  elsif ($FORM{VCT_START}) {
+    $Vacations->{DISABLE_DATES} = _not_available_dates($FORM{VCT_START});
+    $Vacations->{START} = $FORM{VCT_START};
+    $Vacations->{END} = _end_date($FORM{VCT_START}, $Vacations->{TOTAL_DAYS_LEFT} );
+    $html->tpl_show(_include('vacations_end_date_select', 'Vacations'), $Vacations);
+    return 1;
+  }
+  elsif ($FORM{VACATION_REQUEST}) {
+    my $holidays = $Vacations->holidays();
+    $Vacations->{DISABLE_DATES} = '';
+    $Vacations->{START} = $DATE;
+    $Vacations->{END} = _end_date();
+    foreach (@$holidays) {
+      $Vacations->{DISABLE_DATES} .= "'$_->{date}', ";
+    }
+    $html->tpl_show(_include('vacations_date_select', 'Vacations'), $Vacations);
+    return 1;
+  }
 
   if($Vacations->{ROLE} < 1) {
     $html->message('warn', $lang{WARNING}, "Ваш доступ заблокирован. Обратитесь к администратору.");
     return 1;
   }
-
+  my $av_days = _available_vacation_length();
+  foreach (@$av_days) {
+    $Vacations->{AVAIABLE_LENGTH} .= "$_, ";
+    if ($_ > 31) {
+      $Vacations->{AVAIABLE_LENGTH} .= " ... @$av_days[-1]";
+      last;
+    }
+  }
+  $Vacations->{AVAIABLE_LENGTH} =~ s/,\s$//;
   $Vacations->{CHANGE_PASSWORD} = $html->button($lang{CHANGE_PASSWORD}, "index=10&CHANGE_PASSWORD=1&sid=$sid", { class => 'btn btn-sm btn-primary' });
   $Vacations->{VACATION_REQUEST} = $html->button("Заявление о предоставлении отпуска", "index=10&VACATION_REQUEST=1&sid=$sid", { class => 'btn btn-block btn-success' });
   $html->tpl_show(_include('vacations_user_info', 'Vacations'), $Vacations);
@@ -264,6 +290,108 @@ sub _str_to_date {
 }
 
 #**********************************************************
+=head2 _end_date($date, $days)
+
+return date + days
+
+=cut
+#**********************************************************
+sub _end_date {
+  my ($start_date, $period) = @_;
+  
+  my @lastday = (31,28,31,30,31,30,31,31,30,31,30,31);
+
+  if (!$start_date) {
+    my ($year, $month, $day) = split '-', $DATE;
+
+    if ($month == 12) {
+      $year++;
+      $month = 1;
+    }
+    else {
+      $month++;
+    }
+    $day--;
+    $day = $lastday[$month-1] if ($day > $lastday[$month-1]);
+    
+    return sprintf('%04d-%02d-%02d', $year, $month, $day);
+  }
+  
+  my ($year, $month, $day) = split '-', $start_date;
+
+  return "2017-12-31";
+
+}
+
+#**********************************************************
+=head2 _not_available_dates($date)
+
+return array of dates not available for end vacation
+
+=cut
+#**********************************************************
+sub _not_available_dates {
+
+}
+
+#**********************************************************
+=head2 _available_vacation_length()
+
+return array of avaiable vacations
+
+=cut
+#**********************************************************
+sub _available_vacation_length {
+  $Vacations->info($user->{UID});
+  my $periods_list = $Vacations->periods_list($Vacations->{TID});
+
+  my @periods = ();
+  my @avaiable_length = ();
+
+  foreach (@$periods_list) {
+    push @periods, ($_->{days_accrued} - $_->{days_used});
+  }
+
+  if ( @periods < 1 ) {
+    @avaiable_length = (1 .. 32);
+    return \@avaiable_length;
+  }
+
+  while (@periods > 0 && $periods[0] == 0) {
+    shift @periods;
+  }
+
+  if ( @periods < 1 ) {
+    return [ ];
+  }
+
+  if ( $periods[0] < 14 ) {
+    @avaiable_length = (1 .. $periods[0])
+  }
+  elsif ( $periods[0] == 14 ){
+    @avaiable_length = (14);
+  }
+  elsif ( $periods[0] < 28 ) {
+    @avaiable_length = (1 .. ($periods[0] - 14), 14 .. $periods[0]) ;
+  }
+  else {
+     @avaiable_length = (1 .. $periods[0]);
+  }
+
+  if ( @periods > 1) {
+    my $unused_days = 0;
+    foreach (2 .. @periods)  {
+      $unused_days += $periods[$_ - 1];
+    }
+    push  @avaiable_length, (($periods[0] + 1) .. ($periods[0] + $unused_days + 16)); 
+  }
+
+  return \@avaiable_length;
+}
+
+
+
+#**********************************************************
 =head2 vct_history($attr)
 
 =cut
@@ -462,7 +590,7 @@ sub vacations_emp_list {
     $User->pi_add({ UID => $uid, EMAIL => $FORM{EMAIL} });
     _error_show($User);
 
-    $Vacations->user_add({ TID => $FORM{TID}, UID => $uid });
+    $Vacations->user_add({ TID => $FORM{TID}, UID => $uid, ROLE => 1 });
     _error_show($Vacations);
 
     if ($FORM{SEND_EMAIL}) {
@@ -500,9 +628,6 @@ sub vacations_emp_list {
   }
 
   print $table->show();
-
-  return 1;
-
 
   return 1;
 }

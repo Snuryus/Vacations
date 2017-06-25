@@ -26,11 +26,6 @@
           <span><strong>IP:</strong> %IP%</span>
         </a>
       </li>
-      <li>
-        <a href='#'>
-          <span><strong>_{STATE}_:</strong> %STATE% <!-- %STATE_CODE% --></span>
-        </a>
-      </li>
     </ul>
 
     <ul class='nav navbar-nav visible-xs'>
@@ -42,7 +37,6 @@
           <p><strong>_{DATE}_:</strong> %DATE% %TIME% </p>
           <p><strong>_{USER}_ </strong>%LOGIN%</p>
           <p><strong>IP:</strong> %IP%</p>
-          <p><strong>_{STATE}_:</strong> %STATE% <!-- %STATE_CODE% --></p>
         </ul>
       </li>
       <li>

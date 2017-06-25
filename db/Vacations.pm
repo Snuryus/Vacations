@@ -297,12 +297,32 @@ sub periods_list {
     days_accrued,
     days_used
       FROM vacations_accrued_periods
-      WHERE tid= ?",
+      WHERE tid= ?
+      ORDER by 2",
     undef,
     { Bind => [ $tid ], COLS_NAME => 1 }
   );
 
   return $self->{list};
 }
+
+#**********************************************************
+=head2 holidays()
+
+=cut
+#**********************************************************
+sub holidays {
+  my $self = shift;
+
+  $self->query2("SELECT date
+      FROM vacations_holidays
+      WHERE workday=0",
+    undef,
+    { COLS_NAME => 1 }
+  );
+
+  return $self->{list};
+}
+
 
 1
