@@ -43,7 +43,11 @@ sub vacations_user_info {
     form_passwd();
   }
   elsif ($FORM{VCT_START}) {
-    $Vacations->{DISABLE_DATES} = _not_available_dates($FORM{VCT_START});
+    my $holidays = $Vacations->holidays();
+    foreach (@$holidays) {
+      $Vacations->{DISABLE_DATES} .= "'$_->{date}', ";
+    }
+    # $Vacations->{DISABLE_DATES} = _not_available_dates($FORM{VCT_START});
     $Vacations->{START} = $FORM{VCT_START};
     $Vacations->{END} = _end_date($FORM{VCT_START}, $Vacations->{TOTAL_DAYS_LEFT} );
     $html->tpl_show(_include('vacations_end_date_select', 'Vacations'), $Vacations);
