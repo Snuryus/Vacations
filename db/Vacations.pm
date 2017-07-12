@@ -324,5 +324,79 @@ sub holidays {
   return $self->{list};
 }
 
+#**********************************************************
+=head2 log_list($attr) - Vacations log list
+
+=cut
+#**********************************************************
+sub log_list {
+  my $self   = shift;
+  my ($attr) = @_;
+
+  my $SORT      = ($attr->{SORT})      ? $attr->{SORT}      : 'date';
+  my $DESC      = ($attr->{DESC})      ? $attr->{DESC}      : 'DESC';
+  my $PG        = ($attr->{PG})        ? $attr->{PG}        : 0;
+  my $PAGE_ROWS = ($attr->{PAGE_ROWS}) ? $attr->{PAGE_ROWS} : 25;
+
+  $self->{EXT_TABLES}     = '';
+  $self->{SEARCH_FIELDS}  = '';
+  $self->{SEARCH_FIELDS_COUNT} = 0;
+
+  if ($attr->{INTERVAL}) {
+    ($attr->{FROM_DATE}, $attr->{TO_DATE}) = split(/\//, $attr->{INTERVAL}, 2);
+  }
+
+  my $WHERE =  $self->search_former($attr, [
+      ['DATE',           'DATE',        'date',                1 ],
+      ['IP',             'INT',         'ip',  'INET_NTOA(ip) AS ip'],
+      ['EMAIL',          'STR',         'email',               1 ],
+      ['COMMENTS',       'STR',         'comments',            1 ],
+      ['FROM_DATE|TO_DATE','DATE',"DATE_FORMAT(date, '%Y-%m-%d')"],
+      ['ID',             'INT',         'id'                     ],
+    ],
+    { WHERE => 1 }
+  );
+
+  $self->query2("SELECT 
+      $self->{SEARCH_FIELDS}
+      date,
+      id
+      FROM vacations_log
+      $WHERE
+      ORDER BY $SORT $DESC LIMIT $PG, $PAGE_ROWS;",
+    undef,
+    $attr
+  );
+
+  return [] if ($self->{errno});
+
+  my $list = $self->{list};
+
+  if ($self->{TOTAL} >= 0 && !$attr->{SKIP_TOTAL}) {
+    $self->query2("SELECT count( DISTINCT id) AS total FROM vacations_log
+    $WHERE",
+      undef,
+      { INFO => 1 }
+    );
+  }
+
+  return $list;
+}
+
+#**********************************************************
+=head2 log_add($attr)
+
+=cut
+#**********************************************************
+sub log_add {
+  my $self = shift;
+  my ($attr) = @_;
+
+  $self->query_add( 'vacations_log', $attr );
+
+  return 1;
+}
+
+
 
 1

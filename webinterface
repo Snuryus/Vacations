@@ -24,6 +24,7 @@ our(
 
 my $Vacations = Vacations->new($db, $admin, \%conf);
 my $User = Users->new($db, $admin, \%conf);
+my @lastday = (31,28,31,30,31,30,31,31,30,31,30,31);
 
 
 #**********************************************************
@@ -49,7 +50,7 @@ sub vacations_user_info {
     }
     # $Vacations->{DISABLE_DATES} = _not_available_dates($FORM{VCT_START});
     $Vacations->{START} = $FORM{VCT_START};
-    $Vacations->{END} = _end_date($FORM{VCT_START}, $Vacations->{TOTAL_DAYS_LEFT} );
+    $Vacations->{END} = _add_days($FORM{VCT_START}, $Vacations->{TOTAL_DAYS_LEFT} );
     $html->tpl_show(_include('vacations_end_date_select', 'Vacations'), $Vacations);
     return 1;
   }
@@ -57,7 +58,7 @@ sub vacations_user_info {
     my $holidays = $Vacations->holidays();
     $Vacations->{DISABLE_DATES} = '';
     $Vacations->{START} = $DATE;
-    $Vacations->{END} = _end_date();
+    $Vacations->{END} = _add_days($DATE, 30);
     foreach (@$holidays) {
       $Vacations->{DISABLE_DATES} .= "'$_->{date}', ";
     }
@@ -115,7 +116,7 @@ sub vacations_registration {
           }
           else {
             my $password = mk_unique_value($conf{PASSWD_LENGTH} || 6, { EXTRA_RULES => '0:0' });
-            $User->add({ LOGIN => $FORM{TID}, PASSWORD => $password });
+            $User->add({ LOGIN => $FORM{EMAIL}, PASSWORD => $password });
             _error_show($User);
 
             my $uid = $User->{INSERT_ID};
@@ -294,40 +295,6 @@ sub _str_to_date {
 }
 
 #**********************************************************
-=head2 _end_date($date, $days)
-
-return date + days
-
-=cut
-#**********************************************************
-sub _end_date {
-  my ($start_date, $period) = @_;
-  
-  my @lastday = (31,28,31,30,31,30,31,31,30,31,30,31);
-
-  if (!$start_date) {
-    my ($year, $month, $day) = split '-', $DATE;
-
-    if ($month == 12) {
-      $year++;
-      $month = 1;
-    }
-    else {
-      $month++;
-    }
-    $day--;
-    $day = $lastday[$month-1] if ($day > $lastday[$month-1]);
-    
-    return sprintf('%04d-%02d-%02d', $year, $month, $day);
-  }
-  
-  my ($year, $month, $day) = split '-', $start_date;
-
-  return "2017-12-31";
-
-}
-
-#**********************************************************
 =head2 _not_available_dates($date)
 
 return array of dates not available for end vacation
@@ -347,7 +314,7 @@ return array of avaiable vacations
 #**********************************************************
 sub _available_vacation_length {
   $Vacations->info($user->{UID});
-  my $periods_list = $Vacations->periods_list($Vacations->{TID});
+  my $periods_list = vct_periods({ NO_PRINT => 1});
 
   my @periods = ();
   my @avaiable_length = ();
@@ -438,6 +405,7 @@ sub vct_history {
 =cut
 #**********************************************************
 sub vct_periods {
+  my ($attr) = @_;
 
   $Vacations->info($user->{UID});
   if($Vacations->{ROLE} < 1) {
@@ -445,26 +413,51 @@ sub vct_periods {
     return 1;
   }
 
-  my $periods_list = $Vacations->periods_list($Vacations->{TID});
+  # my $periods_list = $Vacations->periods_list($Vacations->{TID});
 
   my $table = $html->table({
     width         => '100%',
-    caption       => "История отпусков",
+    caption       => "Начисление отпусков",
     border        => 1,
     title_plain   => [ "Начало периода", "Конец периода", "Начислено отпускных дней", "Использовано отпускных дней" ],
-    ID            => 'orders',
+    ID            => 'periods',
   });
   
-  my $total_days_used = 0;
   my $total_days_accrued = 0;
 
-  foreach my $period_line ( @$periods_list ) {
-    $table->addrow($period_line->{start_period}, $period_line->{end_period}, $period_line->{days_accrued}, $period_line->{days_used});
-    $total_days_used += $period_line->{days_used};
-    $total_days_accrued += $period_line->{days_accrued};
+  # foreach my $period_line ( @$periods_list ) {
+  #   $table->addrow($period_line->{start_period}, $period_line->{end_period}, $period_line->{days_accrued}, $period_line->{days_used});
+  #   $total_days_used += $period_line->{days_used};
+  #   $total_days_accrued += $period_line->{days_accrued};
+  # }
+
+  my $date = $Vacations->{START_DATE};
+  my $periods_list = ();
+  while (_add_years($date, 1) lt $DATE) {
+    push (@$periods_list, { start_period => $date, end_period => _add_days(_add_years($date, 1), -1), days_accrued => 32 });
+    $date = _add_years($date, 1);
+
+    $total_days_accrued += 32;
   }
   
-  $table->addrow("Всего:", '', $total_days_accrued, $total_days_used );
+  push (@$periods_list, { start_period => $date, end_period => "$DATE", , days_accrued => 16 });
+  $total_days_accrued += 32;
+  
+  my $total_days_used = $total_days_accrued - $Vacations->{TOTAL_DAYS_LEFT};
+  my $days_used = 0;
+
+  foreach my $period_line ( @$periods_list ) {
+    $period_line->{days_used} = ($period_line->{days_accrued} > $total_days_used ) ? $total_days_used : $period_line->{days_accrued};
+    $total_days_used -=  $period_line->{days_used};
+    $table->addrow($period_line->{start_period}, $period_line->{end_period}, $period_line->{days_accrued}, $period_line->{days_used});
+  }
+  
+  if ($attr->{NO_PRINT}) {
+    return $periods_list;
+  }
+
+
+  $table->addrow("Всего:", '', $total_days_accrued, $total_days_accrued - $Vacations->{TOTAL_DAYS_LEFT} );
 
   print $table->show();
   
@@ -483,6 +476,19 @@ sub user_role {
 
   return $Vacations->{ROLE} || -1;
 }
+
+#**********************************************************
+=head2 vacation_log_add($uid)
+
+=cut
+#**********************************************************
+sub vacation_log_add {
+  my $self = shift;
+  my ($attr) = @_;
+
+  return  $Vacations->log_add($attr) || 0;
+}
+
 
 #**********************************************************
 =head2 vacations_users_list()
@@ -581,13 +587,13 @@ sub vacations_emp_list {
 
   if ($FORM{EMAIL} && $FORM{TID}) {
     my $password = mk_unique_value($conf{PASSWD_LENGTH} || 6, { EXTRA_RULES => '0:0' });
-    $User->add({ LOGIN => $FORM{TID}, PASSWORD => $password });
+    $User->add({ LOGIN => $FORM{EMAIL}, PASSWORD => $password });
     _error_show($User);
 
     my $uid = $User->{INSERT_ID};
     
     if ( $User->{errno} ) {
-      $html->message('err', "$lang{ERROR}", "Ошибка при создании пользователя $FORM{TID}");
+      $html->message('err', "$lang{ERROR}", "Ошибка при создании пользователя $FORM{EMAIL}");
       return 0;
     }
 
@@ -598,7 +604,7 @@ sub vacations_emp_list {
     _error_show($Vacations);
 
     if ($FORM{SEND_EMAIL}) {
-      my $message = "LOGIN: $FORM{TID}\nPASSWORD: $password";
+      my $message = "LOGIN: $FORM{EMAIL}\nPASSWORD: $password";
       print $html->header();
       sendmail("$conf{ADMIN_MAIL}", "$FORM{EMAIL}", "Password Recovery", "$message", "$conf{MAIL_CHARSET}", "", {TEST => 1});
 
@@ -616,24 +622,76 @@ sub vacations_emp_list {
     width         => '100%',
     caption       => "Список сотрудников",
     border        => 1,
-    title_plain   => [ "Табельный номер", "ФИО", "Пользователь"],
+    title_plain   => [ "ФИО", "Табельный номер", "Пользователь"],
     ID            => 'employees',
   });
 
   foreach my $emp_line ( @$emp_list ) {
     my $fio = "$emp_line->{surname} $emp_line->{name} $emp_line->{mid_name}";
     if ($emp_line->{uid}) {
-      $table->addrow($emp_line->{tid}, $fio, $roles[$emp_line->{role}]);
+      $table->addrow($fio, $emp_line->{tid}, $roles[$emp_line->{role}]);
     }
     else {
       my $user_add_button = $html->button("Создать аккаунт", "index=$index&USER_ADD=$emp_line->{tid}&SURNAME=$emp_line->{surname}&sid=$sid", { class => 'btn btn-xs btn-success' });
-      $table->addrow($emp_line->{tid}, $fio, $user_add_button);
+      $table->addrow($fio, $emp_line->{tid}, $user_add_button);
     }
   }
 
   print $table->show();
 
   return 1;
+}
+
+#**********************************************************
+=head2 _add_years($date, $years)
+
+=cut
+#**********************************************************
+sub _add_years {
+  my ($date, $d_year) = @_;
+  my ($year, $month, $day) = split '-', $date;
+
+  $year += $d_year;
+
+  $day = 28 if ($month == 2 && $day == 29 && ($year % 4));
+
+  return sprintf('%04d-%02d-%02d', $year, $month, $day);
+}
+
+#**********************************************************
+=head2 _add_days($date, $days)
+
+=cut
+#**********************************************************
+sub _add_days {
+  my ($date, $d_days) = @_;
+  my ($year, $month, $day) = split '-', $date;
+  
+  $lastday[1] = ($year % 4) ? 28 : 29;
+  $day += $d_days;
+
+  while ($day > $lastday[$month-1]) {
+    $day -= $lastday[$month-1];
+    $month++;
+    if ($month > 12) {
+      $year++;
+      $month = 1;
+      $lastday[1] = ($year % 4) ? 28 : 29;
+    }
+  }
+
+  while ($day < 1) {
+    $month--;
+    if ($month == 0) {
+      $year--;
+      $month = 12;
+      $lastday[1] = ($year % 4) ? 28 : 29;
+    }
+    $day += $lastday[$month-1];
+  }
+
+
+  return sprintf('%04d-%02d-%02d', $year, $month, $day);
 }
 
 1

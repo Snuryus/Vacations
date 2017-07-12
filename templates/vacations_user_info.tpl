@@ -7,12 +7,16 @@
     <div class='box-body'>
       <div class='table table-hover table-striped'>
         <div class='row'>
-          <div class='col-xs-12 col-sm-4 col-md-4 text-1'>Табельный номер (логин)</div>
-          <div class='col-xs-12 col-sm-8 col-md-8 text-2'>%TID%</div>
-        </div>
-        <div class='row'>
           <div class='col-xs-12 col-sm-4 col-md-4 text-1'>ФИО</div>
           <div class='col-xs-12 col-sm-8 col-md-8 text-2'>%SURNAME% %NAME% %MID_NAME%</div>
+        </div>
+        <div class='row'>
+          <div class='col-xs-12 col-sm-4 col-md-4 text-1'>E-mail</div>
+          <div class='col-xs-12 col-sm-8 col-md-8 text-2'>%EMAIL%</div>
+        </div>
+        <div class='row'>
+          <div class='col-xs-12 col-sm-4 col-md-4 text-1'>Табельный номер</div>
+          <div class='col-xs-12 col-sm-8 col-md-8 text-2'>%TID%</div>
         </div>
         <div class='row'>
           <div class='col-xs-12 col-sm-4 col-md-4 text-1'>Дата начала работы</div>
