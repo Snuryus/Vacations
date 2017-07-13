@@ -212,8 +212,9 @@ sub vacations_registration {
 sub orders_import {
   my $filename = '/usr/abills/var/datain/vacation_orders.csv';
   my @ColumnNames = ('TID', 'ORDER_ID', 'ORDER_DATE', 'VCT_START', 'VCT_END', 'VCT_DAYS', 'USED');
+  my $counter = 0;
 
-  $Vacations->truncate_table('vacations_orders');
+  # $Vacations->truncate_table('vacations_orders');
 
   open FILE, "< $filename" or die  "Can't open $filename : $!";
 
@@ -228,12 +229,16 @@ sub orders_import {
     $hash{VCT_END} = _str_to_date($hash{VCT_END});
 
     $Vacations->add('vacations_orders', \%hash);
-    _error_show($Vacations);
+    if ( _error_show($Vacations) ) {
+      $html->message('warn', "$lang{WARNING}", "Ошибка при добавлении приказа $hash{ORDER_ID}");
+    }
+    else {
+      $counter++;
+    }
   }
 
   close FILE;
-  return 1;
-
+  return $counter;
 }
 
 #**********************************************************
@@ -244,8 +249,9 @@ sub orders_import {
 sub holidays_import {
   my $filename = '/usr/abills/var/datain/Holidays.csv';
   my @ColumnNames = ('DATE', 'WORKDAY');
+  my $counter = 0;
 
-  $Vacations->truncate_table('vacations_holidays');
+  # $Vacations->truncate_table('vacations_holidays');
 
   open FILE, "< $filename" or die  "Can't open $filename : $!";
 
@@ -258,12 +264,16 @@ sub holidays_import {
     $hash{DATE} = _str_to_date($hash{DATE});
 
     $Vacations->add('vacations_holidays', \%hash);
-    _error_show($Vacations);
+    if ( _error_show($Vacations) ) {
+      $html->message('warn', "$lang{WARNING}", "Ошибка при добавлении даты $hash{DATE}");
+    }
+    else {
+      $counter++;
+    }
   }
 
   close FILE;
-  return 1;
-
+  return $counter;
 }
 
 #**********************************************************
@@ -274,8 +284,9 @@ sub holidays_import {
 sub accrued_import {
   my $filename = '/usr/abills/var/datain/vacation_acrule_periods.csv';
   my @ColumnNames = ('TID', 'START_PERIOD', 'END_PERIOD', 'DAYS_ACCRUED', 'DAYS_USED');
+  my $counter = 0;
 
-  $Vacations->truncate_table('vacations_accrued_periods');
+  # $Vacations->truncate_table('vacations_accrued_periods');
 
   open FILE, "< $filename" or die  "Can't open $filename : $!";
 
@@ -289,24 +300,29 @@ sub accrued_import {
     $hash{END_PERIOD} = _str_to_date($hash{END_PERIOD});
 
     $Vacations->add('vacations_accrued_periods', \%hash);
-    _error_show($Vacations);
+    if ( _error_show($Vacations) ) {
+      $html->message('warn', "$lang{WARNING}", "Ошибка при добавлении периода $hash{START_PERIOD} - $hash{END_PERIOD}");
+    }
+    else {
+      $counter++;
+    }
   }
 
   close FILE;
-  return 1;
-
+  return $counter;
 }
 
 #**********************************************************
-=head2 orders_import($attr)
+=head2 employees_import($attr)
 
 =cut
 #**********************************************************
 sub employees_import {
   my $filename = '/usr/abills/var/datain/employees.csv';
   my @ColumnNames = ('TID', 'SURNAME', 'NAME', 'MID_NAME', 'SURNAME_GENETIVE', 'START_DATE', 'POSITION', 'VCT_DAYS', 'COMPANY', 'VCT_LEFT');
+  my $counter = 0;
 
-  $Vacations->truncate_table('vacations_employees');
+  # $Vacations->truncate_table('vacations_employees');
 
   open FILE, "< $filename" or die  "Can't open $filename : $!";
 
@@ -319,12 +335,16 @@ sub employees_import {
     $hash{START_DATE} = _str_to_date($hash{START_DATE});
 
     $Vacations->add('vacations_employees', \%hash);
-    _error_show($Vacations);
+    if ( _error_show($Vacations) ) {
+      $html->message('warn', "$lang{WARNING}", "Ошибка при добавлении пользователя $hash{TID}");
+    }
+    else {
+      $counter++;
+    }
   }
 
   close FILE;
-  return 1;
-
+  return $counter;
 }
 
 #**********************************************************
@@ -420,25 +440,48 @@ sub _available_vacation_length {
     return [ ];
   }
 
-  if ( $periods[0] < 14 ) {
-    @avaiable_length = (1 .. $periods[0])
-  }
-  elsif ( $periods[0] == 14 ){
-    @avaiable_length = (14);
-  }
-  elsif ( $periods[0] < 28 ) {
-    @avaiable_length = (1 .. ($periods[0] - 14), 14 .. $periods[0]) ;
+  if ( @periods == 1) {
+    my $start_period = $periods_list->[-1]->{start_period};
+    my $days_used_in_current_period = $periods_list->[-1]->{days_used};
+    my $main_vacation_used = 0;
+
+    if ($days_used_in_current_period > 14) {
+      my $orders_list = $Vacations->orders_list($Vacations->{TID});
+      @$orders_list = reverse @$orders_list;
+      foreach (@$orders_list) {
+        last if ($days_used_in_current_period < 14);
+        $main_vacation_used = 1 if ($_->{vct_days} >= 14);
+        $days_used_in_current_period -= $_->{vct_days};
+      }
+    }
+    
+    if ($main_vacation_used == 1) {
+      @avaiable_length = (1 .. $periods[0]); 
+    }
+    elsif ( $periods[0] < (18 - $periods_list->[-1]->{days_used}) ) {
+      @avaiable_length = (1 .. $periods[0]);
+    }
+    elsif ( $periods[0] < 14 ) {
+      @avaiable_length = (1 .. (18 - $periods_list->[-1]->{days_used}) );
+    }
+    else {
+      @avaiable_length = (1 .. (18 - $periods_list->[-1]->{days_used}), 14 .. $periods[0]);
+    }
+
   }
   else {
-     @avaiable_length = (1 .. $periods[0]);
-  }
+    if ( $periods[0] < 14 ) {
+      @avaiable_length = (1 .. $periods[0]);
+    }
+    else {
+       @avaiable_length = (14 .. $periods[0]);
+    }
 
-  if ( @periods > 1) {
     my $unused_days = 0;
     foreach (2 .. @periods)  {
       $unused_days += $periods[$_ - 1];
     }
-    push  @avaiable_length, (($periods[0] + 1) .. ($periods[0] + $unused_days + 16)); 
+    push  @avaiable_length, (($periods[0] + 1) .. ($periods[0] + $unused_days)); 
   }
 
   return \@avaiable_length;
@@ -524,8 +567,9 @@ sub vct_periods {
     $total_days_accrued += 32;
   }
   
-  push (@$periods_list, { start_period => $date, end_period => "$DATE", , days_accrued => 16 });
-  $total_days_accrued += 32;
+  my $days_in_last_period = int (_period_days($date, $DATE) * 32 / 365); 
+  push (@$periods_list, { start_period => $date, end_period => $DATE, , days_accrued => $days_in_last_period });
+  $total_days_accrued += $days_in_last_period;
   
   my $total_days_used = $total_days_accrued - $Vacations->{TOTAL_DAYS_LEFT};
   my $days_used = 0;
@@ -634,16 +678,15 @@ sub vacations_users_list {
 
   foreach my $user_line ( @$user_list ) {
     my $delete_button = $html->button("Удалить", "index=$index&DELETE=$user_line->{uid}&sid=$sid", { class => 'del' }) if ($u_role == 3);
-    my $block_button = $html->button("заблокировать", "index=$index&DISABLE=$user_line->{uid}&sid=$sid", { class => '_on' });
     
-    my $fio = "$user_line->{surname} $user_line->{name} $user_line->{mid_name}";
-    my $chg_pswd_button = $html->button("изменить пароль", "index=$index&CHG_PSWD=$user_line->{uid}&sid=$sid", { class => 'password' });
-    my $chg_email_button = $html->button($user_line->{email} || "Не указано", "index=$index&CHG_EMAIL=$user_line->{uid}&sid=$sid");
-    
-    if (!$user_line->{tid}) {
-      $table->addrow($user_line->{login}, "Не найдено соответствующего сотрудника", '', '', '', '', $delete_button);
+    if (!$user_line->{tid} || !$user_line->{surname}) {
+      $table->addrow("Не найдено соответствующего сотрудника", '', $user_line->{login}, '', '', $delete_button);
     }
     else {
+      my $block_button = $html->button("заблокировать", "index=$index&DISABLE=$user_line->{uid}&sid=$sid", { class => '_on' });
+      my $fio = "$user_line->{surname} $user_line->{name} $user_line->{mid_name}";
+      my $chg_pswd_button = $html->button("изменить пароль", "index=$index&CHG_PSWD=$user_line->{uid}&sid=$sid", { class => 'password' });
+      my $chg_email_button = $html->button($user_line->{email} || "Не указано", "index=$index&CHG_EMAIL=$user_line->{uid}&sid=$sid");
       my @roles = ("Заблокирован", 
         $html->button("Сотрудник", "index=$index&ROLE_2=$user_line->{uid}&sid=$sid"),
         $html->button("Администратор", "index=$index&ROLE_1=$user_line->{uid}&sid=$sid"),
@@ -653,7 +696,7 @@ sub vacations_users_list {
       if ($user_line->{role} == 0) {
         $block_button = $html->button("разблокировать", "index=$index&ENABLE=$user_line->{uid}&sid=$sid",  { class => 'off' });  
       }
-      $table->addrow($user_line->{login}, $fio, $chg_email_button, $chg_role_button, $chg_pswd_button, $block_button,  $delete_button);
+      $table->addrow($user_line->{tid}, $fio, $chg_email_button, $chg_role_button, $chg_pswd_button, $block_button,  $delete_button);
     }
   }
 
@@ -791,16 +834,76 @@ sub _period_days {
   $lastday[1] = ($e_year % 4) ? 28 : 29;
   
   while ($e_year > $s_year || $e_month > $s_month ) {
-    $e_day += $lastday[$e_month];
     $e_month--;
     if ($e_month == 0) {
       $e_year--;
       $e_month = 12;
       $lastday[1] = ($e_year % 4) ? 28 : 29;
     }
+    $e_day += $lastday[$e_month-1]
   }
 
   return $e_day - $s_day + 1;
 }
+
+#**********************************************************
+=head2 import_menu($date_start, $date_end)
+
+=cut
+#**********************************************************
+sub import_menu {
+
+  if ($FORM{TRUN} && $FORM{TRUN} == 1) {
+    $Vacations->truncate_table('vacations_employees');
+    $html->message('warn', "$lang{WARNING}", "Удалены все записи из таблицы 'Сотрудники'");
+  }
+  if ($FORM{TRUN} && $FORM{TRUN} == 2) {
+    $Vacations->truncate_table('vacations_orders');
+    $html->message('warn', "$lang{WARNING}", "Удалены все записи из таблицы 'Приказы'");
+  }
+  if ($FORM{TRUN} && $FORM{TRUN} == 3) {
+    $Vacations->truncate_table('vacations_holidays');
+    $html->message('warn', "$lang{WARNING}", "Удалены все записи из таблицы 'Праздники'");
+  }
+
+  if ($FORM{IMPORT} && $FORM{IMPORT} == 1) {
+    my $count = employees_import();
+    $html->message('info', "$lang{SUCCESS}", "Импортировано $count записей");
+  }
+  if ($FORM{IMPORT} && $FORM{IMPORT} == 2) {
+    my $count = orders_import();
+    $html->message('info', "$lang{SUCCESS}", "Импортировано $count записей");
+  }
+  if ($FORM{IMPORT} && $FORM{IMPORT} == 3) {
+    my $count = holidays_import();
+    $html->message('info', "$lang{SUCCESS}", "Импортировано $count записей");
+  }
+
+  my $table = $html->table({
+    width         => '100%',
+    caption       => "Импорт данных",
+    border        => 1,
+    ID            => 'import',
+  });
+
+  $table->addrow(
+      "Сотрудники",
+      $html->button("Импортировать", "index=$index&IMPORT=1&sid=$sid", { class => 'btn btn-success' }),
+      $html->button("Очистить", "index=$index&TRUN=1&sid=$sid", { class => 'btn btn-danger' }),
+  );
+  $table->addrow(
+      "Приказы",
+      $html->button("Импортировать", "index=$index&IMPORT=2&sid=$sid", { class => 'btn btn-success' }),
+      $html->button("Очистить", "index=$index&TRUN=2&sid=$sid", { class => 'btn btn-danger' }),
+  );
+  $table->addrow(
+      "Праздники",
+      $html->button("Импортировать", "index=$index&IMPORT=3&sid=$sid", { class => 'btn btn-success' }),
+      $html->button("Очистить", "index=$index&TRUN=3&sid=$sid", { class => 'btn btn-danger' }),
+  );
+
+  print $table->show();
+}
+
 
 1

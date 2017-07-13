@@ -274,7 +274,8 @@ sub orders_list {
     vct_days,
     used
       FROM vacations_orders
-      WHERE tid= ?",
+      WHERE tid= ?
+      ORDER by vct_start",
     undef,
     { Bind => [ $tid ], COLS_NAME => 1 }
   );

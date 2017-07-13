@@ -13,7 +13,7 @@
     </div>
   </div-->
   
-  <fieldset style="font-size: 16px">
+  <div style="font-size: 16px">
   <div class='row'>
     <div class='col-md-1'></div>
     <div class='col-md-10 text-right' >
@@ -87,5 +87,5 @@
     %PERIODS%
     </div>
   </div>
-  </fieldset>
+  </div>
 </form>
