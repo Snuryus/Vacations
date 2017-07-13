@@ -10,7 +10,7 @@
   .datepicker table tr td.disabled,
   .datepicker table tr td.disabled:hover {
     background: none;
-    color: #444;
+    color: #bfbfbf;
     cursor: default;
     font-weight: normal;
   }
@@ -43,13 +43,34 @@
     <div class='box-body'>
       <div class='row'>
         <div class='col-md-6'>
-          <b>Выберите дату начала отпуска</b>
+          <b>Дата начала отпуска</b>
         </div>
-        <div class='col-md-4'>
-          <input name='VCT_START' id='datepicker1'>
+        <div class='col-md-6'>
+          <b>Дата окончания отпуска</b>
         </div>
-        <div class='col-md-2'>
-          <input type=submit name='next' value='Дальше' class='btn-xs btn-primary'>
+      </div>
+      <div class='row'>
+        <div class='col-md-6'>
+          <input name='VCT_START' value="%VCT_START%" id="vct_start" readonly>
+        </div>
+        <div class='col-md-6'>
+          <input name='VCT_END' value="%VCT_END%" id="vct_end" readonly>
+        </div>
+      </div>
+      <div class='row'>
+        <div class='col-md-6'>
+          %DATEPICKER1%
+        </div>
+        <div class='col-md-6'>
+          %DATEPICKER2%
+        </div>
+      </div>
+      <div class='row'>
+        <div class='col-md-6'>
+          %BUTTON1%
+        </div>
+        <div class='col-md-6'>
+          %BUTTON2%
         </div>
       </div>
     </div>
@@ -58,10 +79,50 @@
   \$('#datepicker1').datepicker({
   	format: "yyyy-mm-dd",
     language: 'ru',
-    startDate: "%START%",
+    startDate: "%STARTD%",
     endDate: "%END%",
     datesDisabled: [%DISABLE_DATES%],
     orientation: "bottom",
-	weekStart: 1
+	  weekStart: 1
+  });
+  
+  \$('#datepicker2').datepicker({
+  	format: "yyyy-mm-dd",
+    language: 'ru',
+    startDate: "%STARTD%",
+    endDate: "%END%",
+    datesDisabled: [%DISABLE_DATES%],
+    orientation: "bottom",
+	  weekStart: 1
+  });
+  
+  \$('#datepicker3').datepicker({
+  	format: "yyyy-mm-dd",
+    language: 'ru',
+    startDate: "%VCT_START%",
+    endDate: "%VCT_START%",
+    orientation: "bottom",
+	  weekStart: 1
+  });
+  
+  \$('#datepicker4').datepicker({
+  	format: "yyyy-mm-dd",
+    language: 'ru',
+    startDate: "%VCT_END%",
+    endDate: "%VCT_END%",
+    orientation: "bottom",
+	  weekStart: 1
+  });
+  
+  \$('#datepicker1').on('changeDate', function() {
+    \$('#vct_start').val(
+        \$('#datepicker1').datepicker('getFormattedDate')
+    );
+  });
+  
+  \$('#datepicker2').on('changeDate', function() {
+    \$('#vct_end').val(
+        \$('#datepicker2').datepicker('getFormattedDate')
+    );
   });
 </script>

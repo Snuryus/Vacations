@@ -25,7 +25,7 @@ our(
 my $Vacations = Vacations->new($db, $admin, \%conf);
 my $User = Users->new($db, $admin, \%conf);
 my @lastday = (31,28,31,30,31,30,31,31,30,31,30,31);
-
+my @months = ("січня", "лютого", "березня", "квітня", "травня", "червня", "липня", "серпня", "вересня", "жовтня", "листопада", "грудня");
 
 #**********************************************************
 =head2 vacations_user_info($attr)
@@ -43,21 +43,66 @@ sub vacations_user_info {
   if ($FORM{CHANGE_PASSWORD} || $FORM{newpassword}) {
     form_passwd();
   }
+  elsif ($FORM{VCT_END}) {
+    $Vacations->{VCT_START} = $FORM{VCT_START};
+    $Vacations->{VCT_END} = $FORM{VCT_END};
+    $Vacations->{FIO} = "$Vacations->{SURNAME} $Vacations->{NAME} $Vacations->{MID_NAME}";
+    
+    $Vacations->{VCT_START_DAY} = _date_to_str($FORM{VCT_START});
+    $Vacations->{DATE} = _date_to_str($DATE);
+    
+    $Vacations->{VCT_DAYS} = _period_days($FORM{VCT_START}, $FORM{VCT_END});
+    
+    my $holidays = $Vacations->holidays({ WORKDAY => '2', INTERVAL => "$FORM{VCT_START}/$FORM{VCT_END}" });
+    $Vacations->{HOLYDAYS} = 0;
+    $Vacations->{HOLYDAYS} = scalar @$holidays if (ref $holidays eq 'ARRAY');
+    my $days_used = $Vacations->{VCT_DAYS} - $Vacations->{HOLYDAYS};
+    $Vacations->{VCT_USE_DAYS} = $days_used;
+    
+    my $periods_list = vct_periods({ NO_PRINT => 1});
+    my $periods_text = "";
+    foreach (@$periods_list) {
+      my $days_in_period = $_->{days_accrued} - $_->{days_used};
+      next unless ($days_in_period);
+      if ($days_in_period >= $days_used ) {
+        $periods_text .= "$_->{start_period} - $_->{end_period} : $days_used";
+        last;
+      }
+      else {
+        $periods_text .= "$_->{start_period} - $_->{end_period} : $days_in_period,<br>";
+        $days_used -= $days_in_period;
+      }
+    }
+    $Vacations->{PERIODS} = $periods_text;
+    
+    
+    
+    $html->tpl_show(_include('vacations_print', 'Vacations'), $Vacations);
+    return 1;
+  }
   elsif ($FORM{VCT_START}) {
-    my $holidays = $Vacations->holidays();
+    $Vacations->{VCT_START} = $FORM{VCT_START};
+    $Vacations->{DATEPICKER1} = "<div class='col-md-6' id='datepicker3'></div>";
+    $Vacations->{DATEPICKER2} = "<div class='col-md-6' id='datepicker2'></div>";
+    $Vacations->{BUTTON2} = "<input type=submit name='next' value='Дальше' class='btn btn-primary'>";
+  
+    my $not_av_dates = _not_available_dates($FORM{VCT_START});
+    my $holidays = $Vacations->holidays({ WORKDAY => '2'});
     foreach (@$holidays) {
       $Vacations->{DISABLE_DATES} .= "'$_->{date}', ";
     }
-    # $Vacations->{DISABLE_DATES} = _not_available_dates($FORM{VCT_START});
-    $Vacations->{START} = $FORM{VCT_START};
+    $Vacations->{DISABLE_DATES} .= $not_av_dates;
+    $Vacations->{STARTD} = $FORM{VCT_START};
     $Vacations->{END} = _add_days($FORM{VCT_START}, $Vacations->{TOTAL_DAYS_LEFT} );
-    $html->tpl_show(_include('vacations_end_date_select', 'Vacations'), $Vacations);
+    $html->tpl_show(_include('vacations_date_select', 'Vacations'), $Vacations);
     return 1;
   }
   elsif ($FORM{VACATION_REQUEST}) {
-    my $holidays = $Vacations->holidays();
+    $Vacations->{DATEPICKER1} = "<div class='col-md-6' id='datepicker1'></div>";
+    $Vacations->{BUTTON1} = "<input type=submit name='next' value='Дальше' class='btn btn-primary'>";
+    my $holidays = $Vacations->holidays({ WORKDAY => '0'});
     $Vacations->{DISABLE_DATES} = '';
-    $Vacations->{START} = $DATE;
+    $Vacations->{STARTD} = $DATE;
     $Vacations->{END} = _add_days($DATE, 30);
     foreach (@$holidays) {
       $Vacations->{DISABLE_DATES} .= "'$_->{date}', ";
@@ -295,14 +340,53 @@ sub _str_to_date {
 }
 
 #**********************************************************
-=head2 _not_available_dates($date)
+=head2 _date_to_str($date)
+
+convert 01.02.17 to 2017-02-01
+
+=cut
+#**********************************************************
+sub _date_to_str {
+  my ($date) = @_;
+  
+  my ($year, $month, $day) = split '-', $date;
+  
+  return "\«$day\» $months[$month-1] $yearр.";
+}
+
+#**********************************************************
+=head2 _not_available_dates($start_date)
 
 return array of dates not available for end vacation
 
 =cut
 #**********************************************************
 sub _not_available_dates {
-
+  my ($date) = @_;
+  my $av_len = _available_vacation_length();
+  
+  my $lenght = 1;
+  my $counter = 0;
+  my $date_list = '';
+  my $holidays = $Vacations->holidays({ WORKDAY => '2'});
+  my %holyhash = ();
+  foreach (@$holidays) {
+    $holyhash{$_->{date}} = 1;
+  }
+  
+  while ($lenght <= @$av_len[-1] ) {
+    if (!$holyhash{$date}) {
+      if ( $lenght == $av_len->[$counter]) {
+        $counter++;
+      }
+      else {
+        $date_list .= "'$date', ";
+      }
+      $lenght++;
+    }
+    $date = _add_days($date, 1);
+  }
+  return $date_list;
 }
 
 #**********************************************************
@@ -692,6 +776,31 @@ sub _add_days {
 
 
   return sprintf('%04d-%02d-%02d', $year, $month, $day);
+}
+
+#**********************************************************
+=head2 _period_days($date_start, $date_end)
+
+=cut
+#**********************************************************
+sub _period_days {
+  my ($s_date, $e_date) = @_;
+  my ($s_year, $s_month, $s_day) = split '-', $s_date;
+  my ($e_year, $e_month, $e_day) = split '-', $e_date;
+  
+  $lastday[1] = ($e_year % 4) ? 28 : 29;
+  
+  while ($e_year > $s_year || $e_month > $s_month ) {
+    $e_day += $lastday[$e_month];
+    $e_month--;
+    if ($e_month == 0) {
+      $e_year--;
+      $e_month = 12;
+      $lastday[1] = ($e_year % 4) ? 28 : 29;
+    }
+  }
+
+  return $e_day - $s_day + 1;
 }
 
 1

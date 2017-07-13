@@ -41,7 +41,8 @@ CREATE TABLE IF NOT EXISTS `vacations_orders` (
   `vct_days` SMALLINT(6) UNSIGNED NOT NULL DEFAULT '0',
   `used` SMALLINT(6) UNSIGNED NOT NULL DEFAULT '0',
 
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY (`order_id`)
 ) COMMENT = 'vacations orders';
 
 CREATE TABLE IF NOT EXISTS `vacations_main` (

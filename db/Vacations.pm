@@ -313,12 +313,31 @@ sub periods_list {
 #**********************************************************
 sub holidays {
   my $self = shift;
-
-  $self->query2("SELECT date
+  my ($attr) = @_;
+  
+  $self->{EXT_TABLES}     = '';
+  $self->{SEARCH_FIELDS}  = '';
+  $self->{SEARCH_FIELDS_COUNT} = 0;
+  
+  if ($attr->{INTERVAL}) {
+    ($attr->{FROM_DATE}, $attr->{TO_DATE}) = split(/\//, $attr->{INTERVAL}, 2);
+  }
+  
+  my $WHERE =  $self->search_former($attr, [
+      ['DATE',           'DATE',        'date',                1 ],
+      ['WORKDAY',        'INT',         'workday',            1 ],
+      ['FROM_DATE|TO_DATE','DATE',"DATE_FORMAT(date, '%Y-%m-%d')"],
+    ],
+    { WHERE => 1 }
+  );
+  
+  $self->query2("SELECT 
+    $self->{SEARCH_FIELDS}
+      date
       FROM vacations_holidays
-      WHERE workday=0",
+      $WHERE;",
     undef,
-    { COLS_NAME => 1 }
+    { COLS_NAME => 1, %$attr }
   );
 
   return $self->{list};
