@@ -214,9 +214,21 @@ sub orders_import {
   my @ColumnNames = ('TID', 'ORDER_ID', 'ORDER_DATE', 'VCT_START', 'VCT_END', 'VCT_DAYS', 'USED');
   my $counter = 0;
 
+  unless (-e $filename) {
+    $html->message('warn', "$lang{WARNING}", "Файл vacation_orders.csv не найден.");
+    return 0;
+  };
+
+  if (-z $filename) {
+    $html->message('warn', "$lang{WARNING}", "Файл vacation_orders.csv нулевой длинны.");
+    return 0;
+  };
+
+  cmd("iconv -f CP1251 -t UTF-8 -o $filename.utf $filename");
+  cmd("rm $filename");
   # $Vacations->truncate_table('vacations_orders');
 
-  open FILE, "< $filename" or die  "Can't open $filename : $!";
+  open FILE, "< $filename.utf" or die  "Can't open $filename.utf : $!";
 
   my $columns = <FILE>;
 
@@ -238,6 +250,7 @@ sub orders_import {
   }
 
   close FILE;
+  cmd("rm $filename.utf");
   return $counter;
 }
 
@@ -251,9 +264,16 @@ sub holidays_import {
   my @ColumnNames = ('DATE', 'WORKDAY');
   my $counter = 0;
 
+  unless (-e $filename) {
+    $html->message('warn', "$lang{WARNING}", "Файл Holidays.csv не найден.");
+    return 0;
+  };
+
+  cmd("iconv -f CP1251 -t UTF-8 -o $filename.utf $filename");
+  cmd("rm $filename");
   # $Vacations->truncate_table('vacations_holidays');
 
-  open FILE, "< $filename" or die  "Can't open $filename : $!";
+  open FILE, "< $filename.utf" or die  "Can't open $filename.utf : $!";
 
   my $columns = <FILE>;
 
@@ -273,6 +293,7 @@ sub holidays_import {
   }
 
   close FILE;
+  cmd("rm $filename.utf");
   return $counter;
 }
 
@@ -286,9 +307,17 @@ sub accrued_import {
   my @ColumnNames = ('TID', 'START_PERIOD', 'END_PERIOD', 'DAYS_ACCRUED', 'DAYS_USED');
   my $counter = 0;
 
+  unless (-e $filename) {
+    $html->message('warn', "$lang{WARNING}", "Файл vacation_acrule_periods.csv не найден.");
+    return 0;
+  };
+
+  cmd("iconv -f CP1251 -t UTF-8 -o $filename.utf $filename");
+  cmd("rm $filename");
+
   # $Vacations->truncate_table('vacations_accrued_periods');
 
-  open FILE, "< $filename" or die  "Can't open $filename : $!";
+  open FILE, "< $filename.utf" or die  "Can't open $filename.utf : $!";
 
   my $columns = <FILE>;
 
@@ -309,6 +338,7 @@ sub accrued_import {
   }
 
   close FILE;
+  cmd("rm $filename.utf");
   return $counter;
 }
 
@@ -322,9 +352,17 @@ sub employees_import {
   my @ColumnNames = ('TID', 'SURNAME', 'NAME', 'MID_NAME', 'SURNAME_GENETIVE', 'START_DATE', 'POSITION', 'VCT_DAYS', 'COMPANY', 'VCT_LEFT');
   my $counter = 0;
 
+  unless (-e $filename) {
+    $html->message('warn', "$lang{WARNING}", "Файл employees.csv не найден.");
+    return 0;
+  };
+
+  cmd("iconv -f CP1251 -t UTF-8 -o $filename.utf $filename");
+  cmd("rm $filename");
+
   # $Vacations->truncate_table('vacations_employees');
 
-  open FILE, "< $filename" or die  "Can't open $filename : $!";
+  open FILE, "< $filename.utf" or die  "Can't open $filename.utf : $!";
 
   my $columns = <FILE>;
 
@@ -344,6 +382,7 @@ sub employees_import {
   }
 
   close FILE;
+  cmd("rm $filename.utf");
   return $counter;
 }
 
@@ -853,30 +892,49 @@ sub _period_days {
 #**********************************************************
 sub import_menu {
 
-  if ($FORM{TRUN} && $FORM{TRUN} == 1) {
+  my $file_dir = "/usr/abills/var/datain";
+
+  if ($FORM{FILE_UPLOAD}) {
+    upload_file($FORM{FILE_UPLOAD}, { PREFIX => '../../var/datain'});
+    $admin->system_action_add("$lang{ADDED} $lang{FILE} - $FORM{FILE_UPLOAD}{filename}", {TYPE => 62});
+  }
+
+  if ($FORM{file_del} && $FORM{COMMENTS}) {
+    $FORM{file_del} =~ s/ |\///g;
+    if (unlink("$file_dir/$FORM{file_del}") == 1) {
+      $html->message('info', $lang{DELETED}, "$lang{DELETED}: '$FORM{file_del}'");
+      $admin->system_action_add("$lang{DELETED} - $FORM{file_del} - $FORM{COMMENTS}", {TYPE => 63});
+    }
+    else {
+      $html->message('err', $lang{DELETED}, "$lang{ERROR}");
+    }
+  }
+
+
+  if ($FORM{COMMENTS} && $FORM{TRUN} && $FORM{TRUN} == 1) {
     $Vacations->truncate_table('vacations_employees');
     $html->message('warn', "$lang{WARNING}", "Удалены все записи из таблицы 'Сотрудники'");
   }
-  if ($FORM{TRUN} && $FORM{TRUN} == 2) {
+  if ($FORM{COMMENTS} && $FORM{TRUN} && $FORM{TRUN} == 2) {
     $Vacations->truncate_table('vacations_orders');
     $html->message('warn', "$lang{WARNING}", "Удалены все записи из таблицы 'Приказы'");
   }
-  if ($FORM{TRUN} && $FORM{TRUN} == 3) {
+  if ($FORM{COMMENTS} && $FORM{TRUN} && $FORM{TRUN} == 3) {
     $Vacations->truncate_table('vacations_holidays');
     $html->message('warn', "$lang{WARNING}", "Удалены все записи из таблицы 'Праздники'");
   }
 
   if ($FORM{IMPORT} && $FORM{IMPORT} == 1) {
     my $count = employees_import();
-    $html->message('info', "$lang{SUCCESS}", "Импортировано $count записей");
+    $html->message('info', "$lang{SUCCESS}", "Импортировано $count записей") if ($count);
   }
   if ($FORM{IMPORT} && $FORM{IMPORT} == 2) {
     my $count = orders_import();
-    $html->message('info', "$lang{SUCCESS}", "Импортировано $count записей");
+    $html->message('info', "$lang{SUCCESS}", "Импортировано $count записей") if ($count);
   }
   if ($FORM{IMPORT} && $FORM{IMPORT} == 3) {
     my $count = holidays_import();
-    $html->message('info', "$lang{SUCCESS}", "Импортировано $count записей");
+    $html->message('info', "$lang{SUCCESS}", "Импортировано $count записей") if ($count);
   }
 
   my $table = $html->table({
@@ -888,21 +946,54 @@ sub import_menu {
 
   $table->addrow(
       "Сотрудники",
-      $html->button("Импортировать", "index=$index&IMPORT=1&sid=$sid", { class => 'btn btn-success' }),
-      $html->button("Очистить", "index=$index&TRUN=1&sid=$sid", { class => 'btn btn-danger' }),
+      $html->button("Импортировать", "index=$index&IMPORT=1&sid=$sid", { class => 'btn btn-xs btn-success' }),
+      $html->button("Очистить таблицу", "index=$index&TRUN=1&sid=$sid", { MESSAGE => "Подтвердите удаление данных", class => 'btn btn-xs btn-danger' }),
   );
   $table->addrow(
       "Приказы",
-      $html->button("Импортировать", "index=$index&IMPORT=2&sid=$sid", { class => 'btn btn-success' }),
-      $html->button("Очистить", "index=$index&TRUN=2&sid=$sid", { class => 'btn btn-danger' }),
+      $html->button("Импортировать", "index=$index&IMPORT=2&sid=$sid", { class => 'btn btn-xs btn-success' }),
+      $html->button("Очистить таблицу", "index=$index&TRUN=2&sid=$sid", { MESSAGE => "Подтвердите удаление данных", class => 'btn btn-xs btn-danger' }),
   );
   $table->addrow(
       "Праздники",
-      $html->button("Импортировать", "index=$index&IMPORT=3&sid=$sid", { class => 'btn btn-success' }),
-      $html->button("Очистить", "index=$index&TRUN=3&sid=$sid", { class => 'btn btn-danger' }),
+      $html->button("Импортировать", "index=$index&IMPORT=3&sid=$sid", { class => 'btn btn-xs btn-success' }),
+      $html->button("Очистить таблицу", "index=$index&TRUN=3&sid=$sid", { MESSAGE => "Подтвердите удаление данных", class => 'btn btn-xs btn-danger' }),
   );
 
   print $table->show();
+
+  $table = $html->table(
+    {
+      width       => '600',
+      caption     => $lang{OTHER},
+      title_plain => [ "FILE", "$lang{SIZE} (Byte)", "$lang{DATE}", "-" ],
+      cols_align  => [ 'left', 'right', 'right', 'left', 'center' ]
+    }
+  );
+
+  if (-d "$file_dir") {
+    opendir my $fh, "$file_dir" or die "Can't open dir '$conf{TPL_DIR}' $!\n";
+      my @contents = grep !/^\.\.?$/ && !/\.tpl$/, readdir $fh;
+    closedir $fh;
+
+    $table->{rowcolor} = undef;
+    $table->{extra}    = undef;
+    
+    foreach my $file (sort @contents) {
+      next if (-d "file_dir/" . $file);
+
+      my ($dev, $ino, $mode, $nlink, $uid, $gid, $rdev, $size, $atime, $mtime, $ctime, $blksize, $blocks);
+
+      ($dev, $ino, $mode, $nlink, $uid, $gid, $rdev, $size, $atime, $mtime, $ctime, $blksize, $blocks) = stat("$file_dir/$file");
+      $mtime = POSIX::strftime("%Y-%m-%d", localtime($mtime));
+
+      $table->addrow("$file", $size, $mtime, $html->button($lang{DEL}, "index=$index&file_del=$file", { MESSAGE => "$lang{DEL} '$file'", class => 'del' }));
+    }
+
+  }
+  print $table->show();
+
+  $html->tpl_show(_include('vacations_fileadd', 'Vacations'), $Vacations);
 }
 
 
