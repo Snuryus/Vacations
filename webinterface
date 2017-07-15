@@ -41,6 +41,18 @@ sub vacations_user_info {
   }
 
   $Vacations->info($user->{UID});
+
+  if($Vacations->{ROLE} < 1) {
+    $html->message('warn', $lang{WARNING}, "Ваш доступ заблокирован. Обратитесь к администратору.");
+    return 1;
+  }
+
+  if(!$Vacations->{START_DATE}) {
+    $html->message('warn', $lang{WARNING}, "Ваш аккаунт не связян ни с одним сотрудником.");
+    $Vacations->{CHANGE_PASSWORD} = $html->button($lang{CHANGE_PASSWORD}, "index=10&CHANGE_PASSWORD=1&sid=$sid", { class => 'btn btn-sm btn-primary' });
+    $html->tpl_show(_include('vacations_user_info', 'Vacations'), $Vacations);
+    return 1;
+  }
   
   if ($FORM{CHANGE_PASSWORD} || $FORM{newpassword}) {
     form_passwd();
