@@ -1,11 +1,4 @@
 #Iner_ID : Main or Sub or if -1 user menu func list
-%FUNCTIONS_LIST = (
-  "1:0:orders:orders_import:"                                       => 6,
-  "2:0:holidays:holidays_import:"                                   => 6,
-  "3:0:accrued:accrued_import:"                                     => 6,
-  "4:0:employees:employees_import:"                                 => 6,
-);
-
 %USER_FUNCTION_LIST = (
   "20:0:История отпусков:vct_history:"             => 0,
   "30:0:Периоды начисления отпусков:vct_periods:"  => 0
