@@ -980,7 +980,7 @@ sub import_menu {
     $table->{extra}    = undef;
     
     foreach my $file (sort @contents) {
-      next if (-d "file_dir/" . $file);
+      next if (-d "$file_dir/" . $file);
 
       my ($dev, $ino, $mode, $nlink, $uid, $gid, $rdev, $size, $atime, $mtime, $ctime, $blksize, $blocks);
 
