@@ -210,7 +210,7 @@ sub vacations_registration {
 =cut
 #**********************************************************
 sub orders_import {
-  my $filename = '/usr/abills/var/datain/vacation_orders.csv';
+  my $filename = "$base_dir/var/datain/vacation_orders.csv";
   my @ColumnNames = ('TID', 'ORDER_ID', 'ORDER_DATE', 'VCT_START', 'VCT_END', 'VCT_DAYS', 'USED');
   my $counter = 0;
 
@@ -260,7 +260,7 @@ sub orders_import {
 =cut
 #**********************************************************
 sub holidays_import {
-  my $filename = '/usr/abills/var/datain/Holidays.csv';
+  my $filename = "$base_dir/var/datain/Holidays.csv";
   my @ColumnNames = ('DATE', 'WORKDAY');
   my $counter = 0;
 
@@ -303,7 +303,7 @@ sub holidays_import {
 =cut
 #**********************************************************
 sub accrued_import {
-  my $filename = '/usr/abills/var/datain/vacation_acrule_periods.csv';
+  my $filename = "$base_dir/var/datain/vacation_acrule_periods.csv";
   my @ColumnNames = ('TID', 'START_PERIOD', 'END_PERIOD', 'DAYS_ACCRUED', 'DAYS_USED');
   my $counter = 0;
 
@@ -348,7 +348,7 @@ sub accrued_import {
 =cut
 #**********************************************************
 sub employees_import {
-  my $filename = '/usr/abills/var/datain/employees.csv';
+  my $filename = "$base_dir/var/datain/employees.csv";
   my @ColumnNames = ('TID', 'SURNAME', 'NAME', 'MID_NAME', 'SURNAME_GENETIVE', 'START_DATE', 'POSITION', 'VCT_DAYS', 'COMPANY', 'VCT_LEFT');
   my $counter = 0;
 
@@ -897,7 +897,7 @@ sub _period_days {
 #**********************************************************
 sub import_menu {
 
-  my $file_dir = "/usr/abills/var/datain";
+  my $file_dir = "$base_dir/var/datain";
 
   if ($FORM{FILE_UPLOAD}) {
     upload_file($FORM{FILE_UPLOAD}, { PREFIX => '../../var/datain'});
