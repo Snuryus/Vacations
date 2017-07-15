@@ -704,7 +704,7 @@ sub vacations_users_list {
       $Vacations->info($FORM{CHG_PSWD});
       my $message = "LOGIN: $Vacations->{TID}\nPASSWORD: $FORM{NEW_PSWD}";
       print $html->header();
-      sendmail("$conf{ADMIN_MAIL}", "$Vacations->{EMAIL}", "Password Recovery", "$message", "$conf{MAIL_CHARSET}", "", {TEST => 1});
+      sendmail("$conf{ADMIN_MAIL}", "$Vacations->{EMAIL}", "Password Recovery", "$message", "$conf{MAIL_CHARSET}", "", );
     }
   }
   elsif($FORM{CHG_PSWD}) {
@@ -779,7 +779,7 @@ sub vacations_emp_list {
     if ($FORM{SEND_EMAIL}) {
       my $message = "LOGIN: $FORM{EMAIL}\nPASSWORD: $password";
       print $html->header();
-      sendmail("$conf{ADMIN_MAIL}", "$FORM{EMAIL}", "Password Recovery", "$message", "$conf{MAIL_CHARSET}", "", {TEST => 1});
+      sendmail("$conf{ADMIN_MAIL}", "$FORM{EMAIL}", "Password Recovery", "$message", "$conf{MAIL_CHARSET}", "", );
 
     }
   }
