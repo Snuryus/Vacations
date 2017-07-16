@@ -737,7 +737,7 @@ sub vacations_users_list {
     my $delete_button = $html->button("Удалить", "index=$index&DELETE=$user_line->{uid}&sid=$sid", { class => 'del' }) if ($u_role == 3);
     
     if (!$user_line->{tid} || !$user_line->{surname}) {
-      $table->addrow("Не найдено соответствующего сотрудника", '', $user_line->{login}, '', '', $delete_button);
+      $table->addrow("Не найдено соответствующего сотрудника", '', $user_line->{login}, '', '', '', $delete_button);
     }
     else {
       my $block_button = $html->button("заблокировать", "index=$index&DISABLE=$user_line->{uid}&sid=$sid", { class => '_on' });
