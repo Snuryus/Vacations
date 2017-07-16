@@ -47,6 +47,10 @@ sub vacations_user_info {
     return 1;
   }
 
+  if ($FORM{CHANGE_PASSWORD} || $FORM{newpassword}) {
+    form_passwd();
+  }
+
   if(!$Vacations->{START_DATE}) {
     $html->message('warn', $lang{WARNING}, "Ваш аккаунт не связян ни с одним сотрудником.");
     $Vacations->{CHANGE_PASSWORD} = $html->button($lang{CHANGE_PASSWORD}, "index=10&CHANGE_PASSWORD=1&sid=$sid", { class => 'btn btn-sm btn-primary' });
@@ -54,10 +58,7 @@ sub vacations_user_info {
     return 1;
   }
   
-  if ($FORM{CHANGE_PASSWORD} || $FORM{newpassword}) {
-    form_passwd();
-  }
-  elsif ($FORM{VCT_END}) {
+  if ($FORM{VCT_END}) {
     $Vacations->{VCT_START} = $FORM{VCT_START};
     $Vacations->{VCT_END} = $FORM{VCT_END};
     $Vacations->{FIO} = "$Vacations->{SURNAME} $Vacations->{NAME} $Vacations->{MID_NAME}";
@@ -791,7 +792,6 @@ sub vacations_emp_list {
       my $message = "LOGIN: $FORM{EMAIL}\nPASSWORD: $password";
       print $html->header();
       sendmail("$conf{ADMIN_MAIL}", "$FORM{EMAIL}", "Password Recovery", "$message", "$conf{MAIL_CHARSET}", "", );
-
     }
   }
   elsif ($FORM{USER_ADD}) {
