@@ -12,6 +12,7 @@ if ( defined( $user->{UID} ) ){
   }
   if ( $role == 3) {
     $USER_FUNCTION_LIST{"60:0:Импорт данных:import_menu:"} = 0;
+    $USER_FUNCTION_LIST{"70:0:Лог:vacation_log:"} = 0;
   }
 }
 

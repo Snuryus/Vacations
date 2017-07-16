@@ -675,7 +675,6 @@ sub vacation_log_add {
   return  $Vacations->log_add($attr) || 0;
 }
 
-
 #**********************************************************
 =head2 vacations_users_list()
 
@@ -1015,5 +1014,46 @@ sub import_menu {
   $html->tpl_show(_include('vacations_fileadd', 'Vacations'), $Vacations);
 }
 
+#**********************************************************
+=head2 vacation_log($uid)
+
+=cut
+#**********************************************************
+sub vacation_log {
+  my ($attr) = @_;
+
+  my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
+    
+  $FORM{FROM_DATE} //= sprintf("%04d-%02d-%02d", 1900+$year, $mon+1, 1);
+  $FORM{TO_DATE} //= sprintf("%04d-%02d-%02d", 1900+$year, $mon+1, $mday);
+
+  $html->tpl_show(_include('vacations_log', 'Vacations'), {%FORM, %$Vacations});
+
+
+  my $log_list = $Vacations->log_list({
+    INTERVAL  => "$FORM{FROM_DATE}/$FORM{TO_DATE}",
+    EMAIL     => '_SHOW',
+    IP        => '_SHOW',
+    COMMENTS  => '_SHOW',
+
+    COLS_NAME => 1,
+  });
+
+  my $table = $html->table({
+    width         => '100%',
+    caption       => "Лог подключений",
+    border        => 1,
+    title_plain   => [ "Дата", "Логин", "IP", "Комментарий"],
+    ID            => 'log',
+  });
+
+  foreach (@$log_list) {
+    $table->addrow($_->{date}, $_->{email}, $_->{ip}, $_->{comments});
+  }
+
+  print $table->show();
+
+  return  1;
+}
 
 1
