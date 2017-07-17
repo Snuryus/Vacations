@@ -626,8 +626,10 @@ sub vct_periods {
     $total_days_accrued += 32;
   }
   
-  my $days_in_last_period = int (_period_days($date, $DATE) * 32 / 365); 
-  push (@$periods_list, { start_period => $date, end_period => $DATE, , days_accrued => $days_in_last_period });
+  # my $days_in_last_period = int (_period_days($date, $DATE) * 32 / 365);
+  # push (@$periods_list, { start_period => $date, end_period => $DATE, , days_accrued => $days_in_last_period });
+  my $days_in_last_period = int (_period_days($date, "2017-12-31") * 32 / 365);
+  push (@$periods_list, { start_period => $date, end_period => "2017-12-31", , days_accrued => $days_in_last_period });
   $total_days_accrued += $days_in_last_period;
   
   my $total_days_used = $total_days_accrued - $Vacations->{TOTAL_DAYS_LEFT};
