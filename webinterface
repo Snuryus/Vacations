@@ -619,7 +619,7 @@ sub vct_periods {
 
   my $date = $Vacations->{START_DATE};
   my $periods_list = ();
-  while (_add_years($date, 1) lt $DATE) {
+  while (_add_years($date, 1) lt "2017-12-31") {
     push (@$periods_list, { start_period => $date, end_period => _add_days(_add_years($date, 1), -1), days_accrued => 32 });
     $date = _add_years($date, 1);
 
