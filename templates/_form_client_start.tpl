@@ -72,9 +72,9 @@
   <!-- client_start -->
   <a href='index.cgi' class='logo'>
     <!-- mini logo for sidebar mini 50x50 pixels -->
-    <span class='logo-mini'><img src='/images/Shell.png'></span>
+    <span class='logo-mini'><img src='/images/Shell_small_35x35.png'></span>
     <!-- logo for regular state and mobile devices -->
-    <span class='logo-lg'><img src='/images/Shell.png'></span>
+    <span class='logo-lg'><img src='/images/Shell_large_150x35.png'></span>
   </a>
 
   %BODY%

@@ -17,7 +17,7 @@
   .datepicker table tr td.disabled-date,
   .datepicker table tr td.disabled-date:hover {
     background: none;
-    color: #dd4b39;
+    color: #bfbfbf;
     cursor: default;
     font-weight: normal;
   }

@@ -42,11 +42,6 @@ sub vacations_user_info {
 
   $Vacations->info($user->{UID});
 
-  if($Vacations->{ROLE} < 1) {
-    $html->message('warn', $lang{WARNING}, "Ваш доступ заблокирован. Обратитесь к администратору.");
-    return 1;
-  }
-
   if ($FORM{CHANGE_PASSWORD} || $FORM{newpassword}) {
     form_passwd();
   }
@@ -58,74 +53,6 @@ sub vacations_user_info {
     return 1;
   }
   
-  if ($FORM{VCT_END}) {
-    $Vacations->{VCT_START} = $FORM{VCT_START};
-    $Vacations->{VCT_END} = $FORM{VCT_END};
-    $Vacations->{FIO} = "$Vacations->{SURNAME} $Vacations->{NAME} $Vacations->{MID_NAME}";
-    
-    $Vacations->{VCT_START_DAY} = _date_to_str($FORM{VCT_START});
-    $Vacations->{DATE} = _date_to_str($DATE);
-    
-    $Vacations->{VCT_DAYS} = _period_days($FORM{VCT_START}, $FORM{VCT_END});
-    
-    my $holidays = $Vacations->holidays({ WORKDAY => '2', INTERVAL => "$FORM{VCT_START}/$FORM{VCT_END}" });
-    $Vacations->{HOLYDAYS} = 0;
-    $Vacations->{HOLYDAYS} = scalar @$holidays if (ref $holidays eq 'ARRAY');
-    my $days_used = $Vacations->{VCT_DAYS} - $Vacations->{HOLYDAYS};
-    $Vacations->{VCT_USE_DAYS} = $days_used;
-    
-    my $periods_list = vct_periods({ NO_PRINT => 1});
-    my $periods_text = "";
-    foreach (@$periods_list) {
-      my $days_in_period = $_->{days_accrued} - $_->{days_used};
-      next unless ($days_in_period);
-      if ($days_in_period >= $days_used ) {
-        $periods_text .= "$_->{start_period} - $_->{end_period} : $days_used";
-        last;
-      }
-      else {
-        $periods_text .= "$_->{start_period} - $_->{end_period} : $days_in_period,<br>";
-        $days_used -= $days_in_period;
-      }
-    }
-    $Vacations->{PERIODS} = $periods_text;
-    
-    
-    
-    $html->tpl_show(_include('vacations_print', 'Vacations'), $Vacations);
-    return 1;
-  }
-  elsif ($FORM{VCT_START}) {
-    $Vacations->{VCT_START} = $FORM{VCT_START};
-    $Vacations->{DATEPICKER1} = "<div class='col-md-6' id='datepicker3'></div>";
-    $Vacations->{DATEPICKER2} = "<div class='col-md-6' id='datepicker2'></div>";
-    $Vacations->{BUTTON2} = "<input type=submit name='next' value='Дальше' class='btn btn-primary'>";
-  
-    my $not_av_dates = _not_available_dates($FORM{VCT_START});
-    my $holidays = $Vacations->holidays({ WORKDAY => '2'});
-    foreach (@$holidays) {
-      $Vacations->{DISABLE_DATES} .= "'$_->{date}', ";
-    }
-    $Vacations->{DISABLE_DATES} .= $not_av_dates;
-    $Vacations->{STARTD} = $FORM{VCT_START};
-    $Vacations->{END} = _add_days($FORM{VCT_START}, $Vacations->{TOTAL_DAYS_LEFT} );
-    $html->tpl_show(_include('vacations_date_select', 'Vacations'), $Vacations);
-    return 1;
-  }
-  elsif ($FORM{VACATION_REQUEST}) {
-    $Vacations->{DATEPICKER1} = "<div class='col-md-6' id='datepicker1'></div>";
-    $Vacations->{BUTTON1} = "<input type=submit name='next' value='Дальше' class='btn btn-primary'>";
-    my $holidays = $Vacations->holidays({ WORKDAY => '0'});
-    $Vacations->{DISABLE_DATES} = '';
-    $Vacations->{STARTD} = $DATE;
-    $Vacations->{END} = _add_days($DATE, 30);
-    foreach (@$holidays) {
-      $Vacations->{DISABLE_DATES} .= "'$_->{date}', ";
-    }
-    $html->tpl_show(_include('vacations_date_select', 'Vacations'), $Vacations);
-    return 1;
-  }
-
   if($Vacations->{ROLE} < 1) {
     $html->message('warn', $lang{WARNING}, "Ваш доступ заблокирован. Обратитесь к администратору.");
     return 1;
@@ -133,14 +60,13 @@ sub vacations_user_info {
   my $av_days = _available_vacation_length();
   foreach (@$av_days) {
     $Vacations->{AVAIABLE_LENGTH} .= "$_, ";
-    if ($_ > 31) {
+    if ($_ > 15) {
       $Vacations->{AVAIABLE_LENGTH} .= " ... @$av_days[-1]";
       last;
     }
   }
   $Vacations->{AVAIABLE_LENGTH} =~ s/,\s$//;
   $Vacations->{CHANGE_PASSWORD} = $html->button($lang{CHANGE_PASSWORD}, "index=10&CHANGE_PASSWORD=1&sid=$sid", { class => 'btn btn-sm btn-primary' });
-  $Vacations->{VACATION_REQUEST} = $html->button("Заявление о предоставлении отпуска", "index=10&VACATION_REQUEST=1&sid=$sid", { class => 'btn btn-block btn-success' });
   $html->tpl_show(_include('vacations_user_info', 'Vacations'), $Vacations);
 
   return 1;
@@ -414,13 +340,13 @@ sub _str_to_date {
 }
 
 #**********************************************************
-=head2 _date_to_str($date)
+=head2 _date_to_string($date)
 
-convert 01.02.17 to 2017-02-01
+convert 2017-02-01 to "01" лютого 2017
 
 =cut
 #**********************************************************
-sub _date_to_str {
+sub _date_to_string {
   my ($date) = @_;
   
   my ($year, $month, $day) = split '-', $date;
@@ -428,6 +354,20 @@ sub _date_to_str {
   return "\«$day\» $months[$month-1] $yearр.";
 }
 
+#**********************************************************
+=head2 _date_to_str($date)
+
+convert 2017-02-01 to 01.02.17
+
+=cut
+#**********************************************************
+sub _date_to_str {
+  my ($date) = @_;
+
+  $date =~ s/^20//;
+  
+  return join '.', reverse split '-', $date;
+}
 #**********************************************************
 =head2 _not_available_dates($start_date)
 
@@ -1056,6 +996,91 @@ sub vacation_log {
   print $table->show();
 
   return  1;
+}
+
+#**********************************************************
+=head2 vacation_request($uid)
+
+=cut
+#**********************************************************
+sub vacation_request {
+  $Vacations->info($user->{UID});
+
+  if($Vacations->{ROLE} < 1) {
+    $html->message('warn', $lang{WARNING}, "Ваш доступ заблокирован. Обратитесь к администратору.");
+    return 1;
+  }
+
+  if(!$Vacations->{START_DATE}) {
+    $html->message('warn', $lang{WARNING}, "Ваш аккаунт не связян ни с одним сотрудником.");
+    return 1;
+  }
+  
+  if ($FORM{VCT_END}) {
+    $Vacations->{VCT_START} = $FORM{VCT_START};
+    $Vacations->{VCT_END} = $FORM{VCT_END};
+    $Vacations->{FIO} = "$Vacations->{SURNAME} $Vacations->{NAME} $Vacations->{MID_NAME}";
+    
+    $Vacations->{VCT_START_DAY} = _date_to_string($FORM{VCT_START});
+    $Vacations->{DATE} = _date_to_string($DATE);
+    
+    $Vacations->{VCT_DAYS} = _period_days($FORM{VCT_START}, $FORM{VCT_END});
+    
+    my $holidays = $Vacations->holidays({ WORKDAY => '2', INTERVAL => "$FORM{VCT_START}/$FORM{VCT_END}" });
+    $Vacations->{HOLYDAYS} = 0;
+    $Vacations->{HOLYDAYS} = scalar @$holidays if (ref $holidays eq 'ARRAY');
+    my $days_used = $Vacations->{VCT_DAYS} - $Vacations->{HOLYDAYS};
+    $Vacations->{VCT_USE_DAYS} = $days_used;
+    
+    my $periods_list = vct_periods({ NO_PRINT => 1});
+    my $periods_text = "";
+    foreach (@$periods_list) {
+      my $days_in_period = $_->{days_accrued} - $_->{days_used};
+      next unless ($days_in_period);
+      if ($days_in_period >= $days_used ) {
+        $periods_text .= _date_to_str($_->{start_period}) . " - " . _date_to_str($_->{end_period}) . " : $days_used";
+        last;
+      }
+      else {
+        $periods_text .= _date_to_str($_->{start_period}) . " - " . _date_to_str($_->{end_period}) . " : $days_in_period,<br>";
+        $days_used -= $days_in_period;
+      }
+    }
+    $Vacations->{PERIODS} = $periods_text;
+
+    $html->tpl_show(_include('vacations_print', 'Vacations'), $Vacations);
+    return 1;
+  }
+  elsif ($FORM{VCT_START}) {
+    $Vacations->{VCT_START} = $FORM{VCT_START};
+    $Vacations->{DATEPICKER1} = "<div class='col-md-6' id='datepicker3'></div>";
+    $Vacations->{DATEPICKER2} = "<div class='col-md-6' id='datepicker2'></div>";
+    $Vacations->{BUTTON2} = "<input type=submit name='next' value='Дальше' class='btn btn-primary'>";
+  
+    my $not_av_dates = _not_available_dates($FORM{VCT_START});
+    my $holidays = $Vacations->holidays({ WORKDAY => '2'});
+    foreach (@$holidays) {
+      $Vacations->{DISABLE_DATES} .= "'$_->{date}', ";
+    }
+    $Vacations->{DISABLE_DATES} .= $not_av_dates;
+    $Vacations->{STARTD} = $FORM{VCT_START};
+    $Vacations->{END} = _add_days($FORM{VCT_START}, $Vacations->{TOTAL_DAYS_LEFT} );
+    $html->tpl_show(_include('vacations_date_select', 'Vacations'), $Vacations);
+    return 1;
+  }
+  
+  $Vacations->{DATEPICKER1} = "<div class='col-md-6' id='datepicker1'></div>";
+  $Vacations->{BUTTON1} = "<input type=submit name='next' value='Дальше' class='btn btn-primary'>";
+  my $holidays = $Vacations->holidays({ WORKDAY => '0'});
+  $Vacations->{DISABLE_DATES} = '';
+  $Vacations->{STARTD} = $DATE;
+  $Vacations->{END} = _add_days($DATE, 30);
+  foreach (@$holidays) {
+    $Vacations->{DISABLE_DATES} .= "'$_->{date}', ";
+  }
+  $html->tpl_show(_include('vacations_date_select', 'Vacations'), $Vacations);
+  return 1;
+
 }
 
 1

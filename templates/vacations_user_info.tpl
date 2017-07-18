@@ -33,8 +33,5 @@
         
       </div>
     </div>
-    <div class='box-footer'>
-      %VACATION_REQUEST%
-    </div>
   </div>
 </div>

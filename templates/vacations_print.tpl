@@ -1,5 +1,3 @@
-
-
 <form class='form-horizontal'>
   <input type='hidden' name='index' value='$index'>
   <input type='hidden' name='sid' value='$sid'>
@@ -16,17 +14,25 @@
   <div style="font-size: 16px">
   <div class='row'>
     <div class='col-md-1'></div>
-    <div class='col-md-10 text-right' >
-      Генеральному директору<br>
-      ТОВ « Альянс Холдинг»<br>
-      п. Петеру Керекдярто<br>
-      <br>
-      %FIO%<br>
-      %POSITION%<br>
+    <div class='col-md-10'>
+      <table width='100%'>
+        <tr>
+          <td>
+            <img src="/images/shell-bw.png">
+          </td>
+        <td class='text-right'>
+          Генеральному директору<br>
+          ТОВ « Альянс Холдинг»<br>
+          п. Петеру Керекдярто<br>
+          <br>
+          %FIO%<br>
+          %POSITION%<br>
+        </tr>
+      </table>
     </div>
   </div>
   
-  <div class='row' style="height: 200px;"></div>
+  <div class='row' style="height: 150px;"></div>
   
   <div class='row'>
     <div class='col-md-1'></div>
@@ -59,13 +65,20 @@
   
   <div class='row'>
     <div class='col-md-1'></div>
-    <div class='col-md-7 text-left'>
-      Дата написання<br>
-      %DATE%
-    </div>
-    <div class='col-md-3 text-right'>
-      ______________________<br>
-      підпис
+    <div class='col-md-10'>
+      <table width='100%'>
+        <tr>
+          <td class='text-left'>
+            Дата написання<br>
+            %DATE%
+          </td>
+          <td class='text-right'>
+            <br>
+            ______________________<br>
+            підпис
+          </td>
+        </tr>
+      </table>
     </div>
   </div>
   

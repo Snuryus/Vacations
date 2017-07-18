@@ -1,18 +1,19 @@
 #Iner_ID : Main or Sub or if -1 user menu func list
 %USER_FUNCTION_LIST = (
-  "20:0:История отпусков:vct_history:"             => 0,
-  "30:0:Периоды начисления отпусков:vct_periods:"  => 0
+  "20:0:Заявление о отпуске:vacation_request:"  => 0,
+  "30:0:История отпусков:vct_history:"                         => 0,
+  "40:0:Периоды начисления отпусков:vct_periods:"              => 0  
 );
 if ( defined( $user->{UID} ) ){
   load_module( "Vacations", $html );
   my $role = user_role($user->{UID});
   if ( $role > 1 ) {
-    $USER_FUNCTION_LIST{"40:0:Список пользователей:vacations_users_list:"} = 0;
-    $USER_FUNCTION_LIST{"50:0:Список сотрудников:vacations_emp_list:"} = 0;
+    $USER_FUNCTION_LIST{"50:0:Список пользователей:vacations_users_list:"} = 0;
+    $USER_FUNCTION_LIST{"60:0:Список сотрудников:vacations_emp_list:"} = 0;
   }
   if ( $role == 3) {
-    $USER_FUNCTION_LIST{"60:0:Импорт данных:import_menu:"} = 0;
-    $USER_FUNCTION_LIST{"70:0:Лог:vacation_log:"} = 0;
+    $USER_FUNCTION_LIST{"70:0:Импорт данных:import_menu:"} = 0;
+    $USER_FUNCTION_LIST{"80:0:Лог:vacation_log:"} = 0;
   }
 }
 
