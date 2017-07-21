@@ -606,7 +606,7 @@ sub vct_periods {
 sub user_role {
   my ($uid) = @_;
 
-  $Vacations->info($uid);r
+  $Vacations->info($uid);
 
   return $Vacations->{ROLE} || -1;
 }
