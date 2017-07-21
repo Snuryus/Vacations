@@ -1,6 +1,6 @@
 #Iner_ID : Main or Sub or if -1 user menu func list
 %USER_FUNCTION_LIST = (
-  "20:0:Заявление о отпуске:vacation_request:"  => 0,
+  "20:0:Заявление на отпуск:vacation_request:"                 => 0,
   "30:0:История отпусков:vct_history:"                         => 0,
   "40:0:Периоды начисления отпусков:vct_periods:"              => 0  
 );
