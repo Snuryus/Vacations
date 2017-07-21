@@ -475,7 +475,12 @@ sub _available_vacation_length {
     foreach (2 .. @periods)  {
       $unused_days += $periods[$_ - 1];
     }
-    push  @avaiable_length, (($periods[0] + 1) .. ($periods[0] + $unused_days)); 
+    if ($avaiable_length[-1] < 14 && @periods > 2) {
+      push  @avaiable_length, (($periods[0] + 14) .. ($periods[0] + $unused_days)); 
+    }
+    else {
+      push  @avaiable_length, (($periods[0] + 1) .. ($periods[0] + $unused_days));
+    }
   }
 
   return \@avaiable_length;
@@ -601,7 +606,7 @@ sub vct_periods {
 sub user_role {
   my ($uid) = @_;
 
-  $Vacations->info($uid);
+  $Vacations->info($uid);r
 
   return $Vacations->{ROLE} || -1;
 }
