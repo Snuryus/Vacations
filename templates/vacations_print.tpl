@@ -1,7 +1,7 @@
 <form class='form-horizontal'>
   <input type='hidden' name='index' value='$index'>
   <input type='hidden' name='sid' value='$sid'>
-  <!--div class='box box-theme box-form text-center'>
+  <div class='box box-theme box-form text-center'>
     <div class='box-body'>
       <div class='row'>
           Начало отпуска: <b>%VCT_START%</b><br>
@@ -9,9 +9,9 @@
           Окончание отпуска: <b>%VCT_END%</b><br>
       </div>
     </div>
-  </div-->
-  
-  <div style="font-size: 16px">
+  </div>
+  %PRINT_BUTTON%
+  <!--div style="font-size: 16px">
   <div class='row'>
     <div class='col-md-1'></div>
     <div class='col-md-10'>
@@ -100,5 +100,5 @@
     %PERIODS%
     </div>
   </div>
-  </div>
+  </div-->
 </form>

@@ -999,7 +999,7 @@ sub vacation_log {
 }
 
 #**********************************************************
-=head2 vacation_request($uid)
+=head2 vacation_request()
 
 =cut
 #**********************************************************
@@ -1015,8 +1015,11 @@ sub vacation_request {
     $html->message('warn', $lang{WARNING}, "Ваш аккаунт не связян ни с одним сотрудником.");
     return 1;
   }
-  
-  if ($FORM{VCT_END}) {
+  if ($FORM{print}) {
+    vacations_print();
+    return 1;
+  }
+  elsif ($FORM{VCT_END}) {
     $Vacations->{VCT_START} = $FORM{VCT_START};
     $Vacations->{VCT_END} = $FORM{VCT_END};
     $Vacations->{FIO} = "$Vacations->{SURNAME} $Vacations->{NAME} $Vacations->{MID_NAME}";
@@ -1047,6 +1050,8 @@ sub vacation_request {
       }
     }
     $Vacations->{PERIODS} = $periods_text;
+
+    $Vacations->{PRINT_BUTTON} = $html->button("$lang{PRINT} PDF", "qindex=$index&pdf=1&print=1&start=$FORM{VCT_START}&end=$FORM{VCT_END}", { BUTTON => 2, target => '_blank' });
 
     $html->tpl_show(_include('vacations_print', 'Vacations'), $Vacations);
     return 1;
@@ -1083,4 +1088,64 @@ sub vacation_request {
 
 }
 
+#**********************************************************
+=head2 vacations_print()
+
+=cut
+#**********************************************************
+sub vacations_print {
+  $Vacations->{VCT_START} = $FORM{start};
+  $Vacations->{VCT_END} = $FORM{end};
+  $Vacations->{FIO} = "$Vacations->{SURNAME} $Vacations->{NAME} $Vacations->{MID_NAME}";
+
+  $Vacations->{TEXT1} = "Генеральному директору";
+  $Vacations->{TEXT2} = "ТОВ «Альянс Холдинг»";
+  $Vacations->{TEXT3} = "п.Петеру Керекдярто";
+  $Vacations->{TEXT4} = "ЗАЯВА";
+
+  if ($FORM{AUTO_REQ}) {
+    $Vacations->{AUTO_REQ1} = "Прошу дозволити використання службового автомобіля в особистих цілях на";
+    $Vacations->{AUTO_REQ2} = "період відпустки. Збереження та заправку за власний рахунок гарантую.";
+  }
+  
+  
+  $Vacations->{VCT_DAYS1} = "Прошу надати мені щорічну оплачувану відпустку тривалістю " . _period_days($FORM{start}, $FORM{end}) . " календарних";
+  $Vacations->{VCT_DAYS2} = "днів, з " . _date_to_string($FORM{start});
+
+  $Vacations->{DATE1} = "Дата написання";
+  $Vacations->{DATE2} = _date_to_string($DATE);
+
+  $Vacations->{SIGNATURE1} = "___________________";
+  $Vacations->{SIGNATURE2} = "підпис";
+  $Vacations->{SIGNATURE3} = "Підпис безпосереднього керівника: ___________________";
+
+  
+  my $holidays = $Vacations->holidays({ WORKDAY => '2', INTERVAL => "$FORM{start}/$FORM{end}" });
+  $Vacations->{HOLYDAYS} = 0;
+  $Vacations->{HOLYDAYS} = scalar @$holidays if (ref $holidays eq 'ARRAY');
+  my $days_used = _period_days($FORM{start}, $FORM{end}) - $Vacations->{HOLYDAYS};
+  $Vacations->{VCT_USE_DAYS} = $days_used;
+  
+  my $periods_list = vct_periods({ NO_PRINT => 1});
+  my $periods_text = "";
+  my $counter = 1;
+  $Vacations->{"PERIODS0"} = "Відпустка за період:";
+  foreach (@$periods_list) {
+    my $days_in_period = $_->{days_accrued} - $_->{days_used};
+    next unless ($days_in_period);
+
+    if ($days_in_period >= $days_used ) {
+      $Vacations->{"PERIODS$counter"} = _date_to_str($_->{start_period}) . " - " . _date_to_str($_->{end_period}) . " : $days_used";
+      last;
+    }
+    else {
+      $Vacations->{"PERIODS$counter"} = _date_to_str($_->{start_period}) . " - " . _date_to_str($_->{end_period}) . " : $days_in_period";
+      $days_used -= $days_in_period;
+    }
+    $counter++;
+  }
+  $html->tpl_show(_include('vacations_print_2', 'Vacations'), $Vacations);
+
+  return 1;
+}
 1
