@@ -96,24 +96,6 @@
 	  weekStart: 1
   });
   
-  \$('#datepicker3').datepicker({
-  	format: "yyyy-mm-dd",
-    language: 'ru',
-    startDate: "%VCT_START%",
-    endDate: "%VCT_START%",
-    orientation: "bottom",
-	  weekStart: 1
-  });
-  
-  \$('#datepicker4').datepicker({
-  	format: "yyyy-mm-dd",
-    language: 'ru',
-    startDate: "%VCT_END%",
-    endDate: "%VCT_END%",
-    orientation: "bottom",
-	  weekStart: 1
-  });
-  
   \$('#datepicker1').on('changeDate', function() {
     \$('#vct_start').val(
         \$('#datepicker1').datepicker('getFormattedDate')
@@ -128,4 +110,6 @@
     );
     \$('#dateform').submit();
   });
+
+
 </script>
