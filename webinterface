@@ -1071,7 +1071,6 @@ sub vacation_request {
     # $Vacations->{BUTTON2} = "<input type=submit name='next' value='Дальше' class='btn btn-primary'>";
   
     my $not_av_dates = _not_available_dates($FORM{VCT_START});
-    _bp('1', $not_av_dates, {HEADER => 1});
     my $holidays = $Vacations->holidays({ WORKDAY => '2'});
     foreach (@$holidays) {
       $Vacations->{DISABLE_DATES2} .= "'$_->{date}', ";
