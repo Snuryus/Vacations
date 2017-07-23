@@ -7,11 +7,11 @@ POSITION:position:russian:(x=357;y=700;font_size=13)
 
 TEXT4:TEXT4:russian:(x=270;y=550;font_size=13)
 
-VCT_DAYS1:VCT_DAYS1:russian:(x=72;y=442;font_size=13)
-VCT_DAYS2:VCT_DAYS2:russian:(x=72;y=427;font_size=13)
+VCT_DAYS1:VCT_DAYS1:russian:(x=72;y=445;font_size=13)
+VCT_DAYS2:VCT_DAYS2:russian:(x=72;y=430;font_size=13)
 
-AUTO_REQ1:auto_request:russian:(x=72;y=370;font_size=13)
-AUTO_REQ2:auto_request:russian:(x=72;y=355;font_size=13)
+AUTO_REQ1:auto_request:russian:(x=72;y=400;font_size=13)
+AUTO_REQ2:auto_request:russian:(x=72;y=385;font_size=13)
 
 DATE1:date:russian:(x=72;y=315;font_size=13)
 DATE2:date:russian:(x=72;y=300;font_size=13)

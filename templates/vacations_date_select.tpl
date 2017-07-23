@@ -35,7 +35,7 @@
 
   </style>
 
-<form class='form-horizontal'>
+<form class='form-horizontal' id='dateform'>
   <input type='hidden' name='index' value='$index'>
   <input type='hidden' name='VACATION_REQUEST' value='1'>
   <input type='hidden' name='sid' value='$sid'>
@@ -51,10 +51,10 @@
       </div>
       <div class='row'>
         <div class='col-md-6'>
-          <input name='VCT_START' value="%VCT_START%" id="vct_start" readonly>
+          <input hidden name='VCT_START' value="%VCT_START%" id="vct_start" readonly>
         </div>
         <div class='col-md-6'>
-          <input name='VCT_END' value="%VCT_END%" id="vct_end" readonly>
+          <input hidden name='VCT_END' value="%VCT_END%" id="vct_end" readonly>
         </div>
       </div>
       <div class='row'>
@@ -65,14 +65,14 @@
           %DATEPICKER2%
         </div>
       </div>
-      <div class='row'>
+      <!--div class='row'>
         <div class='col-md-6'>
           %BUTTON1%
         </div>
         <div class='col-md-6'>
           %BUTTON2%
         </div>
-      </div>
+      </div-->
     </div>
 </form>
 <script type="text/javascript">
@@ -89,9 +89,9 @@
   \$('#datepicker2').datepicker({
   	format: "yyyy-mm-dd",
     language: 'ru',
-    startDate: "%STARTD%",
-    endDate: "%END%",
-    datesDisabled: [%DISABLE_DATES%],
+    startDate: "%STARTD2%",
+    endDate: "%END2%",
+    datesDisabled: [%DISABLE_DATES2%],
     orientation: "bottom",
 	  weekStart: 1
   });
@@ -118,11 +118,14 @@
     \$('#vct_start').val(
         \$('#datepicker1').datepicker('getFormattedDate')
     );
+    \$('#vct_end').val('');
+    \$('#dateform').submit();
   });
   
   \$('#datepicker2').on('changeDate', function() {
     \$('#vct_end').val(
         \$('#datepicker2').datepicker('getFormattedDate')
     );
+    \$('#dateform').submit();
   });
 </script>

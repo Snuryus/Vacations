@@ -1024,7 +1024,8 @@ sub vacation_request {
     vacations_print();
     return 1;
   }
-  elsif ($FORM{VCT_END}) {
+  
+  if ($FORM{VCT_END}) {
     $Vacations->{VCT_START} = $FORM{VCT_START};
     $Vacations->{VCT_END} = $FORM{VCT_END};
     $Vacations->{FIO} = "$Vacations->{SURNAME} $Vacations->{NAME} $Vacations->{MID_NAME}";
@@ -1056,31 +1057,33 @@ sub vacation_request {
     }
     $Vacations->{PERIODS} = $periods_text;
 
-    $Vacations->{PRINT_BUTTON} = $html->button("$lang{PRINT} PDF", "qindex=$index&pdf=1&print=1&start=$FORM{VCT_START}&end=$FORM{VCT_END}", { BUTTON => 2, target => '_blank' });
+    $Vacations->{PRINT_BUTTON1} = $html->button("$lang{PRINT}", "qindex=$index&pdf=1&print=1&start=$FORM{VCT_START}&end=$FORM{VCT_END}", { BUTTON => 2, target => '_blank' });
+    $Vacations->{PRINT_BUTTON2} = $html->button("$lang{PRINT}", "qindex=$index&pdf=1&print=1&start=$FORM{VCT_START}&end=$FORM{VCT_END}&AUTO_REQ=1", { BUTTON => 2, target => '_blank' });
 
     $html->tpl_show(_include('vacations_print', 'Vacations'), $Vacations);
-    return 1;
   }
-  elsif ($FORM{VCT_START}) {
+  
+  if ($FORM{VCT_START}) {
+    $FORM{VCT_END} ||= '';
     $Vacations->{VCT_START} = $FORM{VCT_START};
-    $Vacations->{DATEPICKER1} = "<div class='col-md-6' id='datepicker3'></div>";
-    $Vacations->{DATEPICKER2} = "<div class='col-md-6' id='datepicker2'></div>";
-    $Vacations->{BUTTON2} = "<input type=submit name='next' value='Дальше' class='btn btn-primary'>";
+    # $Vacations->{DATEPICKER1} = "<div class='col-md-6' id='datepicker3'></div>";
+    $Vacations->{DATEPICKER2} = "<div class='col-md-6' id='datepicker2' data-date=$FORM{VCT_END}></div>";
+    # $Vacations->{BUTTON2} = "<input type=submit name='next' value='Дальше' class='btn btn-primary'>";
   
     my $not_av_dates = _not_available_dates($FORM{VCT_START});
     my $holidays = $Vacations->holidays({ WORKDAY => '2'});
     foreach (@$holidays) {
-      $Vacations->{DISABLE_DATES} .= "'$_->{date}', ";
+      $Vacations->{DISABLE_DATES2} .= "'$_->{date}', ";
     }
-    $Vacations->{DISABLE_DATES} .= $not_av_dates;
-    $Vacations->{STARTD} = $FORM{VCT_START};
-    $Vacations->{END} = _add_days($FORM{VCT_START}, $Vacations->{TOTAL_DAYS_LEFT} );
-    $html->tpl_show(_include('vacations_date_select', 'Vacations'), $Vacations);
-    return 1;
+    $Vacations->{DISABLE_DATE2S} .= $not_av_dates;
+    $Vacations->{STARTD2} = $FORM{VCT_START};
+    $Vacations->{END2} = _add_days($FORM{VCT_START}, $Vacations->{TOTAL_DAYS_LEFT} );
+    # $html->tpl_show(_include('vacations_date_select', 'Vacations'), $Vacations);
+    # return 1;
   }
-  
-  $Vacations->{DATEPICKER1} = "<div class='col-md-6' id='datepicker1'></div>";
-  $Vacations->{BUTTON1} = "<input type=submit name='next' value='Дальше' class='btn btn-primary'>";
+  $FORM{VCT_START} ||= '';
+  $Vacations->{DATEPICKER1} = "<div class='col-md-6' id='datepicker1' data-date=$FORM{VCT_START}></div>";
+  # $Vacations->{BUTTON1} = "<input type=submit name='next' value='Дальше' class='btn btn-primary'>";
   my $holidays = $Vacations->holidays({ WORKDAY => '0'});
   $Vacations->{DISABLE_DATES} = '';
   $Vacations->{STARTD} = $DATE;
