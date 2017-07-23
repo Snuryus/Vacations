@@ -290,7 +290,7 @@ sub accrued_import {
 #**********************************************************
 sub employees_import {
   my $filename = "$base_dir/var/datain/employees.csv";
-  my @ColumnNames = ('TID', 'SURNAME', 'NAME', 'MID_NAME', 'SURNAME_GENETIVE', 'START_DATE', 'POSITION', 'VCT_DAYS', 'COMPANY', 'VCT_LEFT');
+  my @ColumnNames = ('TID', 'SURNAME', 'NAME', 'MID_NAME', 'SURNAME_GENETIVE', 'START_DATE', 'POSITION', 'VCT_DAYS', 'EMAIL', 'COMPANY', 'VCT_LEFT');
   my $counter = 0;
 
   unless (-e $filename) {
@@ -320,6 +320,7 @@ sub employees_import {
     else {
       $counter++;
     }
+    
   }
 
   close FILE;
@@ -773,6 +774,37 @@ sub vacations_emp_list {
   return 1;
 }
 
+#**********************************************************
+=head2 _user_add($date, $years)
+
+=cut
+#**********************************************************
+sub _user_add {
+  my ($login, $tid) = @_;
+  my $password = mk_unique_value($conf{PASSWD_LENGTH} || 6, { EXTRA_RULES => '0:0' });
+  $User->add({ LOGIN => $login, PASSWORD => $password });
+  _error_show($User);
+
+  my $uid = $User->{INSERT_ID};
+  
+  if ( $User->{errno} ) {
+    $html->message('err', "$lang{ERROR}", "Ошибка при создании пользователя $login");
+    return 0;
+  }
+
+  $User->pi_add({ UID => $uid, EMAIL => $login });
+  _error_show($User);
+
+  $Vacations->user_add({ TID => $tid, UID => $uid, ROLE => 1 });
+  _error_show($Vacations);
+
+  if ($FORM{SEND_EMAIL}) {
+    my $message = "LOGIN: $login\nPASSWORD: $password";
+    print $html->header();
+    sendmail("$conf{ADMIN_MAIL}", "$login", "Shell vacations portal registration", "$message", "$conf{MAIL_CHARSET}", "", );
+  }
+  return 1;
+}
 #**********************************************************
 =head2 _add_years($date, $years)
 
