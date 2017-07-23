@@ -319,8 +319,8 @@ sub employees_import {
     }
     else {
       $counter++;
+      _vacations_user_add($hash{EMAIL}, $hash{TID});
     }
-    
   }
 
   close FILE;
@@ -775,18 +775,18 @@ sub vacations_emp_list {
 }
 
 #**********************************************************
-=head2 _user_add($date, $years)
+=head2 _vacations_user_add($login, $tid)
 
 =cut
 #**********************************************************
-sub _user_add {
+sub _vacations_user_add {
   my ($login, $tid) = @_;
+ 
   my $password = mk_unique_value($conf{PASSWD_LENGTH} || 6, { EXTRA_RULES => '0:0' });
   $User->add({ LOGIN => $login, PASSWORD => $password });
   _error_show($User);
 
   my $uid = $User->{INSERT_ID};
-  
   if ( $User->{errno} ) {
     $html->message('err', "$lang{ERROR}", "Ошибка при создании пользователя $login");
     return 0;
