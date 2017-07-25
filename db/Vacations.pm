@@ -59,8 +59,11 @@ sub users_list {
     ve.surname_genetive as gen_surname,
     ve.start_date,
     ve.position,
-    ve.vct_days AS total_days_used,
-    ve.vct_left AS total_days_left
+    ve.email,
+    ve.company,
+    ve.vct_days,
+    ve.vct_left AS total_days_left,
+    ve.vct_earned AS total_days_earned
       FROM users u
       LEFT JOIN users_pi pi ON (u.uid=pi.uid)
       LEFT JOIN vacations_main vm ON (u.uid=vm.uid)
@@ -93,8 +96,10 @@ sub info {
     ve.surname_genetive as gen_surname,
     ve.start_date,
     ve.position,
-    ve.vct_days AS total_days_used,
+    ve.email,
+    ve.vct_days,
     ve.vct_left AS total_days_left,
+    ve.vct_earned AS total_days_earned,
     ve.company
       FROM vacations_main vm
       LEFT JOIN users u ON (u.uid=vm.uid)
@@ -258,7 +263,7 @@ sub user_change {
 }
 
 #**********************************************************
-=head2 orders_list($uid, $attr)
+=head2 orders_list($tid)
 
 =cut
 #**********************************************************

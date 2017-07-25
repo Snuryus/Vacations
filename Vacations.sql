@@ -6,9 +6,11 @@ CREATE TABLE IF NOT EXISTS `vacations_employees` (
   `surname_genetive` VARCHAR(40) NOT NULL DEFAULT '',
   `start_date` DATE NOT NULL DEFAULT '0000-00-00',
   `position` VARCHAR(200) NOT NULL DEFAULT '',
+  `email` VARCHAR(60) NOT NULL DEFAULT '',
   `vct_days` SMALLINT(6) UNSIGNED NOT NULL DEFAULT '0',
   `company` VARCHAR(200) NOT NULL DEFAULT '',
   `vct_left` SMALLINT(6) UNSIGNED NOT NULL DEFAULT '0',
+  `vct_earned` SMALLINT(6) UNSIGNED NOT NULL DEFAULT '0',
   
   PRIMARY KEY (`tid`)
 ) COMMENT = 'employees';

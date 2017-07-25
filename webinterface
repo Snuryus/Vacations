@@ -57,6 +57,19 @@ sub vacations_user_info {
     $html->message('warn', $lang{WARNING}, "Ваш доступ заблокирован. Обратитесь к администратору.");
     return 1;
   }
+  
+  my $orders_list = $Vacations->orders_list($Vacations->{TID});
+  foreach (@$orders_list) {
+    $Vacations->{TOTAL_DAYS_LEFT} -= $_->{vct_days} if ($_->{order_date} gt "2017-06-30")
+  }
+  
+  my $import_date = '2017-12-31';
+  while ($DATE gt $import_date) {
+    $Vacations->{TOTAL_DAYS_LEFT} += $Vacations->{VCT_DAYS};
+    _add_years($import_date,1);
+  }
+  
+  
   my $av_days = _available_vacation_length();
   foreach (@$av_days) {
     $Vacations->{AVAIABLE_LENGTH} .= "$_, ";
@@ -290,7 +303,7 @@ sub accrued_import {
 #**********************************************************
 sub employees_import {
   my $filename = "$base_dir/var/datain/employees.csv";
-  my @ColumnNames = ('TID', 'SURNAME', 'NAME', 'MID_NAME', 'SURNAME_GENETIVE', 'START_DATE', 'POSITION', 'VCT_DAYS', 'EMAIL', 'COMPANY', 'VCT_LEFT');
+  my @ColumnNames = ('TID', 'SURNAME', 'NAME', 'MID_NAME', 'SURNAME_GENETIVE', 'START_DATE', 'POSITION', 'VCT_DAYS', 'EMAIL', 'COMPANY', 'VCT_LEFT', 'VCT_EARNED');
   my $counter = 0;
 
   unless (-e $filename) {
@@ -401,6 +414,7 @@ sub _not_available_dates {
     }
     $date = _add_days($date, 1);
   }
+  $Vacations->{END2} = _add_days($date, -1);
   return $date_list;
 }
 
@@ -546,6 +560,7 @@ sub vct_periods {
   }
 
   # my $periods_list = $Vacations->periods_list($Vacations->{TID});
+  
 
   my $table = $html->table({
     width         => '100%',
@@ -556,6 +571,21 @@ sub vct_periods {
   });
   
   my $total_days_accrued = 0;
+  my $db_earned = $Vacations->{TOTAL_DAYS_EARNED};
+  my $db_left = $Vacations->{TOTAL_DAYS_LEFT};
+  
+  my $orders_list = $Vacations->orders_list($Vacations->{TID});
+  foreach (@$orders_list) {
+    $db_left -= $_->{vct_days} if ($_->{order_date} gt "2017-06-30")
+  }
+  
+  my $import_date = '2017-12-31';
+  while ($DATE gt $import_date) {
+    $db_earned += $Vacations->{VCT_DAYS};
+    _add_years($import_date,1);
+  }
+  
+  my $db_used = $db_earned - $db_left;
 
   # foreach my $period_line ( @$periods_list ) {
   #   $table->addrow($period_line->{start_period}, $period_line->{end_period}, $period_line->{days_accrued}, $period_line->{days_used});
@@ -565,20 +595,25 @@ sub vct_periods {
 
   my $date = $Vacations->{START_DATE};
   my $periods_list = ();
-  while (_add_years($date, 1) lt "2017-12-31") {
+  my ($year, undef, undef) = split '-', $DATE;
+  while (_add_years($date, 1) lt "$year-12-31") {
     push (@$periods_list, { start_period => $date, end_period => _add_days(_add_years($date, 1), -1), days_accrued => 32 });
     $date = _add_years($date, 1);
 
-    $total_days_accrued += 32;
+    $total_days_accrued += $Vacations->{VCT_DAYS};
   }
   
   # my $days_in_last_period = int (_period_days($date, $DATE) * 32 / 365);
   # push (@$periods_list, { start_period => $date, end_period => $DATE, , days_accrued => $days_in_last_period });
-  my $days_in_last_period = int (_period_days($date, "2017-12-31") * 32 / 30.348 /12 + 0.5);
-  push (@$periods_list, { start_period => $date, end_period => "2017-12-31", , days_accrued => $days_in_last_period });
+  my $days_in_last_period = int (_period_days($date, "$year-12-31") * $Vacations->{VCT_DAYS} / 365.25 + 0.5);
+  push (@$periods_list, { start_period => $date, end_period => "$year-12-31", days_accrued => $days_in_last_period });
   $total_days_accrued += $days_in_last_period;
   
-  my $total_days_used = $total_days_accrued - $Vacations->{TOTAL_DAYS_LEFT};
+  if ($total_days_accrued != $db_earned) {
+    unshift (@$periods_list, { start_period => "Другое", end_period => "", days_accrued => $db_earned - $total_days_accrued });
+  }
+  
+  my $total_days_used = $db_used;
   my $days_used = 0;
 
   foreach my $period_line ( @$periods_list ) {
@@ -591,8 +626,7 @@ sub vct_periods {
     return $periods_list;
   }
 
-
-  $table->addrow("Всего:", '', $total_days_accrued, $total_days_accrued - $Vacations->{TOTAL_DAYS_LEFT} );
+  $table->addrow("Всего:", '', $db_earned, $db_used );
 
   print $table->show();
   
@@ -1109,7 +1143,7 @@ sub vacation_request {
     }
     $Vacations->{DISABLE_DATES2} .= $not_av_dates;
     $Vacations->{STARTD2} = $FORM{VCT_START};
-    $Vacations->{END2} = _add_days($FORM{VCT_START}, $Vacations->{TOTAL_DAYS_LEFT} );
+    # $Vacations->{END2} = _add_days($FORM{VCT_START}, $Vacations->{TOTAL_DAYS_LEFT} - 1 );
     # $html->tpl_show(_include('vacations_date_select', 'Vacations'), $Vacations);
     # return 1;
   }
@@ -1136,10 +1170,10 @@ sub vacation_request {
 sub vacations_print {
   $Vacations->{VCT_START} = $FORM{start};
   $Vacations->{VCT_END} = $FORM{end};
-  $Vacations->{FIO} = "$Vacations->{SURNAME} $Vacations->{NAME} $Vacations->{MID_NAME}";
+  $Vacations->{FIO} = "$Vacations->{GEN_SURNAME} $Vacations->{NAME} $Vacations->{MID_NAME}";
 
   $Vacations->{TEXT1} = "Генеральному директору";
-  $Vacations->{TEXT2} = "ТОВ «Альянс Холдинг»";
+  $Vacations->{TEXT2} = $Vacations->{COMPANY};
   $Vacations->{TEXT3} = "п.Петеру Керекдярто";
   $Vacations->{TEXT4} = "ЗАЯВА";
 
