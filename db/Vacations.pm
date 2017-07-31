@@ -169,7 +169,11 @@ sub emp_list {
     ve.surname,
     ve.name,
     ve.mid_name,
+    ve.surname_genetive,
     ve.start_date,
+    ve.email,
+    ve.vct_left,
+    ve.vct_earned,
     vm.uid,
     vm.role
       FROM vacations_employees ve
