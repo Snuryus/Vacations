@@ -779,11 +779,11 @@ sub vacations_emp_list {
   elsif ($FORM{USER_ADD}) {
     $html->tpl_show(_include('vacations_user_reg', 'Vacations'), { TID => $FORM{USER_ADD}, %FORM });
   }
-  elsif ($FORM{GEN_SURNAME}) {
+  elsif ($FORM{SURNAME_GENETIVE}) {
     $Vacations->emp_change(\%FORM);
   }
   elsif ($FORM{EDIT}) {
-    $html->tpl_show(_include('vacations_emp_edit', 'Vacations'), { TID => $FORM{EDIT}});
+    $html->tpl_show(_include('vacations_emp_edit', 'Vacations'), \%FORM );
   }
 
 
@@ -800,7 +800,7 @@ sub vacations_emp_list {
 
   foreach my $emp_line ( @$emp_list ) {
     my $fio = "$emp_line->{surname} $emp_line->{name} $emp_line->{mid_name}";
-    my $edit_button = $html->button("редактировать", "index=$index&EDIT=$emp_line->{tid}&sid=$sid", { class => 'change' });
+    my $edit_button = $html->button("редактировать", "index=$index&EDIT=$emp_line->{tid}&OLD_SURNAME=$emp_line->{surname_genetive}&VCT_LEFT=$emp_line->{vct_left}&VCT_EARNED=$emp_line->{vct_earned}&sid=$sid", { class => 'change' });
     if ($emp_line->{uid}) {
       $table->addrow($emp_line->{tid}, $fio, $emp_line->{surname_genetive}, $emp_line->{vct_left}, $emp_line->{vct_earned}, $roles[$emp_line->{role}], $edit_button);
     }
@@ -1130,8 +1130,8 @@ sub vacation_request {
     }
     $Vacations->{PERIODS} = $periods_text;
 
-    $Vacations->{PRINT_BUTTON1} = $html->button("$lang{PRINT}", "qindex=$index&pdf=1&print=1&start=$FORM{VCT_START}&end=$FORM{VCT_END}", { BUTTON => 2, target => '_blank' });
-    $Vacations->{PRINT_BUTTON2} = $html->button("$lang{PRINT}", "qindex=$index&pdf=1&print=1&start=$FORM{VCT_START}&end=$FORM{VCT_END}&AUTO_REQ=1", { BUTTON => 2, target => '_blank' });
+    $Vacations->{PRINT_BUTTON1} = $html->button("Создать заявление", "qindex=$index&pdf=1&print=1&start=$FORM{VCT_START}&end=$FORM{VCT_END}", { BUTTON => 2, target => '_blank' });
+    $Vacations->{PRINT_BUTTON2} = $html->button("Создать заявление", "qindex=$index&pdf=1&print=1&start=$FORM{VCT_START}&end=$FORM{VCT_END}&AUTO_REQ=1", { BUTTON => 2, target => '_blank' });
 
     $html->tpl_show(_include('vacations_print', 'Vacations'), $Vacations);
   }
@@ -1177,7 +1177,13 @@ sub vacation_request {
 sub vacations_print {
   $Vacations->{VCT_START} = $FORM{start};
   $Vacations->{VCT_END} = $FORM{end};
-  $Vacations->{FIO} = "$Vacations->{GEN_SURNAME} $Vacations->{NAME} $Vacations->{MID_NAME}";
+  $Vacations->{FIO} = "$Vacations->{GEN_SURNAME}";
+
+  $Vacations->{POSITION} .= " ";
+  my @arr = $Vacations->{POSITION} =~ m/(.{1,70}\s)/g;
+  $Vacations->{POSITION1} = $arr[0];
+  $Vacations->{POSITION2} = $arr[1];
+  $Vacations->{POSITION3} = $arr[2];
 
   $Vacations->{TEXT1} = "Генеральному директору";
   $Vacations->{TEXT2} = $Vacations->{COMPANY};
@@ -1225,7 +1231,8 @@ sub vacations_print {
     }
     $counter++;
   }
-  $html->tpl_show(_include('vacations_print_2', 'Vacations'), $Vacations);
+
+  $html->tpl_show(_include('vacations_print_2', 'Vacations'), $Vacations, {TITLE => "print.pdf"});
 
   return 1;
 }

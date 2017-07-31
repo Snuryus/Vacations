@@ -184,6 +184,26 @@ sub emp_list {
 
   return $self->{list};
 }
+#**********************************************************
+=head2 emp_change($attr)
+
+=cut
+#**********************************************************
+sub emp_change {
+  my $self = shift;
+  my ($attr) = @_;
+
+   $self->changes2(
+    {
+      CHANGE_PARAM    => 'TID',
+      TABLE           => 'vacations_employees',
+      DATA            => $attr,
+    }
+  );
+  
+  return $self;
+}
+
 
 #**********************************************************
 =head2 add($attr)

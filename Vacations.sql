@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS `vacations_employees` (
   `surname` VARCHAR(40) NOT NULL DEFAULT '',
   `name` VARCHAR(40) NOT NULL DEFAULT '',
   `mid_name` VARCHAR(40) NOT NULL DEFAULT '',
-  `surname_genetive` VARCHAR(40) NOT NULL DEFAULT '',
+  `surname_genetive` VARCHAR(120) NOT NULL DEFAULT '',
   `start_date` DATE NOT NULL DEFAULT '0000-00-00',
   `position` VARCHAR(200) NOT NULL DEFAULT '',
   `email` VARCHAR(60) NOT NULL DEFAULT '',

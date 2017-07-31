@@ -3,7 +3,9 @@ TEXT2:TEXT2:russian:(x=357;y=760;font_size=13)
 TEXT3:TEXT3:russian:(x=357;y=745;font_size=13)
 
 FIO:FIO:russian:(x=357;y=715;font_size=13)
-POSITION:position:russian:(x=357;y=700;font_size=13)
+POSITION1:position:russian:(x=357;y=700;font_size=13)
+POSITION2:position:russian:(x=357;y=685;font_size=13)
+POSITION3:position:russian:(x=357;y=670;font_size=13)
 
 TEXT4:TEXT4:russian:(x=270;y=550;font_size=13)
 
