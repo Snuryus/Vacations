@@ -930,10 +930,10 @@ sub _period_days {
 #**********************************************************
 sub import_menu {
 
-  my $file_dir = "$base_dir/var/datain";
+  my $file_dir = "/media/sf_datain";
 
   if ($FORM{FILE_UPLOAD}) {
-    upload_file($FORM{FILE_UPLOAD}, { PREFIX => '../../var/datain'});
+    upload_file($FORM{FILE_UPLOAD}, { PREFIX => '../../../../media/sf_datain'});
     $admin->system_action_add("$lang{ADDED} $lang{FILE} - $FORM{FILE_UPLOAD}{filename}", {TYPE => 62});
   }
 
