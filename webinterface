@@ -27,7 +27,7 @@ my $User = Users->new($db, $admin, \%conf);
 my @lastday = (31,28,31,30,31,30,31,31,30,31,30,31);
 my @months = ("січня", "лютого", "березня", "квітня", "травня", "червня", "липня", "серпня", "вересня", "жовтня", "листопада", "грудня");
 
-my $base_dir = $conf{TPL_DIR} . '../../';
+my $base_dir = '/media/sf_datain';
 
 #**********************************************************
 =head2 vacations_user_info($attr)
@@ -58,9 +58,16 @@ sub vacations_user_info {
     return 1;
   }
   
+  if ($FORM{CHANGE_GEN}) {
+    $html->tpl_show(_include('vacations_change_gen', 'Vacations'), $Vacations);
+  }
+  elsif ($FORM{GEN_SURNAME}) {
+    $Vacations->emp_change({ TID => $Vacations->{TID}, SURNAME_GENETIVE => $FORM{GEN_SURNAME} });
+  }
+
   my $orders_list = $Vacations->orders_list($Vacations->{TID});
   foreach (@$orders_list) {
-    $Vacations->{TOTAL_DAYS_LEFT} -= $_->{vct_days} if ($_->{order_date} gt "2017-06-30")
+    $Vacations->{TOTAL_DAYS_LEFT} -= $_->{vct_days} if ($_->{order_date} gt "2017-07-31");
   }
   
   my $import_date = '2017-12-31';
@@ -68,7 +75,6 @@ sub vacations_user_info {
     $Vacations->{TOTAL_DAYS_LEFT} += $Vacations->{VCT_DAYS};
     _add_years($import_date,1);
   }
-  
   
   my $av_days = _available_vacation_length();
   foreach (@$av_days) {
@@ -80,6 +86,7 @@ sub vacations_user_info {
   }
   $Vacations->{AVAIABLE_LENGTH} =~ s/,\s$//;
   $Vacations->{CHANGE_PASSWORD} = $html->button($lang{CHANGE_PASSWORD}, "index=10&CHANGE_PASSWORD=1&sid=$sid", { class => 'btn btn-sm btn-primary' });
+  $Vacations->{GEN_SURNAME_BTN} = $html->button($Vacations->{GEN_SURNAME}, "index=10&CHANGE_GEN=1&sid=$sid");
   $html->tpl_show(_include('vacations_user_info', 'Vacations'), $Vacations);
 
   return 1;
@@ -164,7 +171,7 @@ sub vacations_registration {
 =cut
 #**********************************************************
 sub orders_import {
-  my $filename = "$base_dir/var/datain/vacation_orders.csv";
+  my $filename = "$base_dir/vacation_orders.csv";
   my @ColumnNames = ('TID', 'ORDER_ID', 'ORDER_DATE', 'VCT_START', 'VCT_END', 'VCT_DAYS', 'USED');
   my $counter = 0;
 
@@ -214,7 +221,7 @@ sub orders_import {
 =cut
 #**********************************************************
 sub holidays_import {
-  my $filename = "$base_dir/var/datain/Holidays.csv";
+  my $filename = "$base_dir/Holidays.csv";
   my @ColumnNames = ('DATE', 'WORKDAY');
   my $counter = 0;
 
@@ -257,7 +264,7 @@ sub holidays_import {
 =cut
 #**********************************************************
 sub accrued_import {
-  my $filename = "$base_dir/var/datain/vacation_acrule_periods.csv";
+  my $filename = "$base_dir/vacation_acrule_periods.csv";
   my @ColumnNames = ('TID', 'START_PERIOD', 'END_PERIOD', 'DAYS_ACCRUED', 'DAYS_USED');
   my $counter = 0;
 
@@ -302,7 +309,7 @@ sub accrued_import {
 =cut
 #**********************************************************
 sub employees_import {
-  my $filename = "$base_dir/var/datain/employees.csv";
+  my $filename = "$base_dir/employees.csv";
   my @ColumnNames = ('TID', 'SURNAME', 'NAME', 'MID_NAME', 'SURNAME_GENETIVE', 'START_DATE', 'POSITION', 'VCT_DAYS', 'EMAIL', 'COMPANY', 'VCT_LEFT', 'VCT_EARNED');
   my $counter = 0;
 
@@ -333,6 +340,48 @@ sub employees_import {
     else {
       $counter++;
       _vacations_user_add($hash{EMAIL}, $hash{TID});
+    }
+  }
+
+  close FILE;
+  cmd("rm $filename.utf");
+  return $counter;
+}
+
+#**********************************************************
+=head2 remnants_import($attr)
+
+=cut
+#**********************************************************
+sub remnants_import {
+  my $filename = "$base_dir/remnants.csv";
+  my @ColumnNames = ('TID', 'VCT_LEFT', 'VCT_EARNED');
+  my $counter = 0;
+
+  unless (-e $filename) {
+    $html->message('warn', "$lang{WARNING}", "Файл remnants.csv не найден.");
+    return 0;
+  };
+
+  cmd("iconv -f CP1251 -t UTF-8 -o $filename.utf $filename");
+  cmd("rm $filename");
+  # $Vacations->truncate_table('vacations_holidays');
+
+  open FILE, "< $filename.utf" or die  "Can't open $filename.utf : $!";
+
+  my $columns = <FILE>;
+
+  while (<FILE>) {
+    chomp $_;
+    my %hash;
+    @hash{@ColumnNames} = split (';');
+    
+    $Vacations->emp_change(\%hash);
+    if ( _error_show($Vacations) ) {
+      $html->message('warn', "$lang{WARNING}", "Ошибка при добавлении $hash{TID}");
+    }
+    else {
+      $counter++;
     }
   }
 
@@ -608,6 +657,7 @@ sub vct_periods {
   my $days_in_last_period = int (_period_days($date, "$year-12-31") * $Vacations->{VCT_DAYS} / 365.25 + 0.5);
   push (@$periods_list, { start_period => $date, end_period => "$year-12-31", days_accrued => $days_in_last_period });
   $total_days_accrued += $days_in_last_period;
+  $db_earned += $days_in_last_period;
   
   if ($total_days_accrued != $db_earned) {
     unshift (@$periods_list, { start_period => "Другое", end_period => "", days_accrued => $db_earned - $total_days_accrued });
@@ -937,17 +987,15 @@ sub import_menu {
     $admin->system_action_add("$lang{ADDED} $lang{FILE} - $FORM{FILE_UPLOAD}{filename}", {TYPE => 62});
   }
 
-  if ($FORM{file_del} && $FORM{COMMENTS}) {
+  if ($FORM{file_del}) {
     $FORM{file_del} =~ s/ |\///g;
     if (unlink("$file_dir/$FORM{file_del}") == 1) {
       $html->message('info', $lang{DELETED}, "$lang{DELETED}: '$FORM{file_del}'");
-      $admin->system_action_add("$lang{DELETED} - $FORM{file_del} - $FORM{COMMENTS}", {TYPE => 63});
     }
     else {
       $html->message('err', $lang{DELETED}, "$lang{ERROR}");
     }
   }
-
 
   if ($FORM{COMMENTS} && $FORM{TRUN} && $FORM{TRUN} == 1) {
     $Vacations->truncate_table('vacations_employees');
@@ -974,6 +1022,10 @@ sub import_menu {
     my $count = holidays_import();
     $html->message('info', "$lang{SUCCESS}", "Импортировано $count записей") if ($count);
   }
+  if ($FORM{IMPORT} && $FORM{IMPORT} == 4) {
+    my $count = remnants_import();
+    $html->message('info', "$lang{SUCCESS}", "Импортировано $count записей") if ($count);
+  }
 
   my $table = $html->table({
     width         => '100%',
@@ -996,6 +1048,10 @@ sub import_menu {
       "Праздники",
       $html->button("Импортировать", "index=$index&IMPORT=3&sid=$sid", { class => 'btn btn-xs btn-success' }),
       $html->button("Очистить таблицу", "index=$index&TRUN=3&sid=$sid", { MESSAGE => "Подтвердите удаление данных", class => 'btn btn-xs btn-danger' }),
+  );
+  $table->addrow(
+      "Остатки",
+      $html->button("Импортировать", "index=$index&IMPORT=4&sid=$sid", { class => 'btn btn-xs btn-success' }),
   );
 
   print $table->show();
@@ -1025,7 +1081,7 @@ sub import_menu {
       ($dev, $ino, $mode, $nlink, $uid, $gid, $rdev, $size, $atime, $mtime, $ctime, $blksize, $blocks) = stat("$file_dir/$file");
       $mtime = POSIX::strftime("%Y-%m-%d", localtime($mtime));
 
-      $table->addrow("$file", $size, $mtime, $html->button($lang{DEL}, "index=$index&file_del=$file", { MESSAGE => "$lang{DEL} '$file'", class => 'del' }));
+      $table->addrow("$file", $size, $mtime, $html->button($lang{DEL}, "index=$index&file_del=$file", { class => 'del' }));
     }
 
   }
