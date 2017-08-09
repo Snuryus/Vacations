@@ -4,9 +4,9 @@
   <div class='box box-theme box-form text-center'>
     <div class='box-body'>
       <div class='row'>
-          Начало отпуска: <b>%VCT_START%</b><br>
+          Начало отпуска: <b>%VCT_START_STR%</b><br>
           Длительность отпуска: <b>%VCT_USE_DAYS%</b> календарных дней</b><br>
-          Окончание отпуска: <b>%VCT_END%</b><br>
+          Окончание отпуска: <b>%VCT_END_STR%</b><br>
           <br>
           <div class="checkbox">
             <label><input type="checkbox" id='req_auto'>предоставить служебный автомобиль</label>

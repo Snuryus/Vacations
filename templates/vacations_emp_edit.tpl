@@ -19,7 +19,7 @@
         </div>
       </div>
       <div class='form-group'>
-      <div class='col-md-12'><b>Заработано дрей отпуска до 31.12.2017</b></div>
+      <div class='col-md-12'><b>Заработано дней отпуска до 31.12.2017</b></div>
         <div class='col-md-12'>
           <input class='form-control' type='text' name='VCT_EARNED' value='%VCT_EARNED%'>
         </div>

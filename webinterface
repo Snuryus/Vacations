@@ -84,6 +84,9 @@ sub vacations_user_info {
       last;
     }
   }
+
+  $Vacations->{START_DATE} = _date_to_str($Vacations->{START_DATE});
+  $Vacations->{DATE} = _date_to_str($DATE);
   $Vacations->{AVAIABLE_LENGTH} =~ s/,\s$//;
   $Vacations->{CHANGE_PASSWORD} = $html->button($lang{CHANGE_PASSWORD}, "index=10&CHANGE_PASSWORD=1&sid=$sid", { class => 'btn btn-sm btn-primary' });
   $Vacations->{GEN_SURNAME_BTN} = $html->button($Vacations->{GEN_SURNAME}, "index=10&CHANGE_GEN=1&sid=$sid");
@@ -172,7 +175,7 @@ sub vacations_registration {
 #**********************************************************
 sub orders_import {
   my $filename = "$base_dir/vacation_orders.csv";
-  my @ColumnNames = ('TID', 'ORDER_ID', 'ORDER_DATE', 'VCT_START', 'VCT_END', 'VCT_DAYS', 'USED');
+  my @ColumnNames = ('UNI_KEY', 'TID', 'ORDER_ID', 'ORDER_DATE', 'VCT_START', 'VCT_END', 'VCT_DAYS', 'USED');
   my $counter = 0;
 
   unless (-e $filename) {
@@ -427,7 +430,7 @@ convert 2017-02-01 to 01.02.17
 sub _date_to_str {
   my ($date) = @_;
 
-  $date =~ s/^20//;
+  # $date =~ s/^20//;
   
   return join '.', reverse split '-', $date;
 }
@@ -578,7 +581,7 @@ sub vct_history {
   my $total_days = 0;
 
   foreach my $vct_line ( @$vct_list ) {
-    $table->addrow($vct_line->{order_id}, $vct_line->{order_date}, $vct_line->{vct_start}, $vct_line->{vct_end}, $vct_line->{vct_days});
+    $table->addrow($vct_line->{order_id}, _date_to_str($vct_line->{order_date}), _date_to_str($vct_line->{vct_start}), _date_to_str($vct_line->{vct_end}), $vct_line->{vct_days} );
     $total_days += $vct_line->{vct_days};
   }
   
@@ -669,7 +672,7 @@ sub vct_periods {
   foreach my $period_line ( @$periods_list ) {
     $period_line->{days_used} = ($period_line->{days_accrued} > $total_days_used ) ? $total_days_used : $period_line->{days_accrued};
     $total_days_used -=  $period_line->{days_used};
-    $table->addrow($period_line->{start_period}, $period_line->{end_period}, $period_line->{days_accrued}, $period_line->{days_used});
+    $table->addrow(_date_to_str($period_line->{start_period}), _date_to_str($period_line->{end_period}), $period_line->{days_accrued}, $period_line->{days_used});
   }
   
   if ($attr->{NO_PRINT}) {
@@ -1170,24 +1173,27 @@ sub vacation_request {
     my $days_used = $Vacations->{VCT_DAYS} - $Vacations->{HOLYDAYS};
     $Vacations->{VCT_USE_DAYS} = $days_used;
     
-    my $periods_list = vct_periods({ NO_PRINT => 1});
-    my $periods_text = "";
-    foreach (@$periods_list) {
-      my $days_in_period = $_->{days_accrued} - $_->{days_used};
-      next unless ($days_in_period);
-      if ($days_in_period >= $days_used ) {
-        $periods_text .= _date_to_str($_->{start_period}) . " - " . _date_to_str($_->{end_period}) . " : $days_used";
-        last;
-      }
-      else {
-        $periods_text .= _date_to_str($_->{start_period}) . " - " . _date_to_str($_->{end_period}) . " : $days_in_period,<br>";
-        $days_used -= $days_in_period;
-      }
-    }
-    $Vacations->{PERIODS} = $periods_text;
+    # my $periods_list = vct_periods({ NO_PRINT => 1});
+    # my $periods_text = "";
+    # foreach (@$periods_list) {
+    #   my $days_in_period = $_->{days_accrued} - $_->{days_used};
+    #   next unless ($days_in_period);
+    #   if ($days_in_period >= $days_used ) {
+    #     $periods_text .= _date_to_str($_->{start_period}) . " - " . _date_to_str($_->{end_period}) . " : $days_used";
+    #     last;
+    #   }
+    #   else {
+    #     $periods_text .= _date_to_str($_->{start_period}) . " - " . _date_to_str($_->{end_period}) . " : $days_in_period,<br>";
+    #     $days_used -= $days_in_period;
+    #   }
+    # }
+    # $Vacations->{PERIODS} = $periods_text;
 
     $Vacations->{PRINT_BUTTON1} = $html->button("Создать заявление", "qindex=$index&pdf=1&print=1&start=$FORM{VCT_START}&end=$FORM{VCT_END}", { BUTTON => 2, target => '_blank' });
     $Vacations->{PRINT_BUTTON2} = $html->button("Создать заявление", "qindex=$index&pdf=1&print=1&start=$FORM{VCT_START}&end=$FORM{VCT_END}&AUTO_REQ=1", { BUTTON => 2, target => '_blank' });
+
+    $Vacations->{VCT_START_STR} = _date_to_str($Vacations->{VCT_START});
+    $Vacations->{VCT_END_STR} = _date_to_str($Vacations->{VCT_END});
 
     $html->tpl_show(_include('vacations_print', 'Vacations'), $Vacations);
   }
@@ -1210,16 +1216,20 @@ sub vacation_request {
     # $html->tpl_show(_include('vacations_date_select', 'Vacations'), $Vacations);
     # return 1;
   }
+
   $FORM{VCT_START} ||= '';
   $Vacations->{DATEPICKER1} = "<div class='col-md-6' id='datepicker1' data-date=$FORM{VCT_START}></div>";
   # $Vacations->{BUTTON1} = "<input type=submit name='next' value='Дальше' class='btn btn-primary'>";
-  my $holidays = $Vacations->holidays({ WORKDAY => '0'});
+  my $holidays = $Vacations->holidays({ WORKDAY => '2'});
   $Vacations->{DISABLE_DATES} = '';
   $Vacations->{STARTD} = $DATE;
   $Vacations->{END} = _add_days($DATE, 30);
   foreach (@$holidays) {
     $Vacations->{DISABLE_DATES} .= "'$_->{date}', ";
   }
+
+  $Vacations->{DISABLE_DATES} .= "'2017-01-01'";
+
   $html->tpl_show(_include('vacations_date_select', 'Vacations'), $Vacations);
   return 1;
 
@@ -1250,10 +1260,24 @@ sub vacations_print {
     $Vacations->{AUTO_REQ1} = "Прошу дозволити використання службового автомобіля в особистих цілях на";
     $Vacations->{AUTO_REQ2} = "період відпустки. Збереження та заправку за власний рахунок гарантую.";
   }
+
+  my $holidays = $Vacations->holidays({ WORKDAY => '2', INTERVAL => "$FORM{start}/$FORM{end}" });
+  $Vacations->{HOLYDAYS} = 0;
+  $Vacations->{HOLYDAYS} = scalar @$holidays if (ref $holidays eq 'ARRAY');
+  my $days_used = _period_days($FORM{start}, $FORM{end}) - $Vacations->{HOLYDAYS};
   
-  
-  $Vacations->{VCT_DAYS1} = "Прошу надати мені щорічну оплачувану відпустку тривалістю " . _period_days($FORM{start}, $FORM{end}) . " календарних";
-  $Vacations->{VCT_DAYS2} = "днів, з " . _date_to_string($FORM{start});
+  if ($days_used == 1) {
+    $Vacations->{VCT_DAYS1} = "Прошу надати мені щорічну оплачувану відпустку тривалістю 1 календарний";
+    $Vacations->{VCT_DAYS2} = "день, з " . _date_to_string($FORM{start});
+  }
+  elsif ($days_used < 5) {
+    $Vacations->{VCT_DAYS1} = "Прошу надати мені щорічну оплачувану відпустку тривалістю " . $days_used . " календарні";
+    $Vacations->{VCT_DAYS2} = "дні, з " . _date_to_string($FORM{start});
+  }
+  else {
+    $Vacations->{VCT_DAYS1} = "Прошу надати мені щорічну оплачувану відпустку тривалістю " . $days_used . " календарних";
+    $Vacations->{VCT_DAYS2} = "днів, з " . _date_to_string($FORM{start});
+  }
 
   $Vacations->{DATE1} = "Дата написання";
   $Vacations->{DATE2} = _date_to_string($DATE);
@@ -1262,13 +1286,6 @@ sub vacations_print {
   $Vacations->{SIGNATURE2} = "підпис";
   $Vacations->{SIGNATURE3} = "Підпис безпосереднього керівника: ___________________";
 
-  
-  my $holidays = $Vacations->holidays({ WORKDAY => '2', INTERVAL => "$FORM{start}/$FORM{end}" });
-  $Vacations->{HOLYDAYS} = 0;
-  $Vacations->{HOLYDAYS} = scalar @$holidays if (ref $holidays eq 'ARRAY');
-  my $days_used = _period_days($FORM{start}, $FORM{end}) - $Vacations->{HOLYDAYS};
-  $Vacations->{VCT_USE_DAYS} = $days_used;
-  
   my $periods_list = vct_periods({ NO_PRINT => 1});
   my $periods_text = "";
   my $counter = 1;

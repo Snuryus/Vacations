@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS `vacations_accrued_periods` (
 
 CREATE TABLE IF NOT EXISTS `vacations_orders` (
   `id` SMALLINT(6) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `uni_key` VARCHAR(20) NOT NULL DEFAULT '',
   `tid` VARCHAR(20) NOT NULL DEFAULT '',
   `order_id` VARCHAR(40) NOT NULL DEFAULT '',
   `order_date` DATE NOT NULL DEFAULT '0000-00-00',
@@ -44,7 +45,7 @@ CREATE TABLE IF NOT EXISTS `vacations_orders` (
   `used` SMALLINT(6) UNSIGNED NOT NULL DEFAULT '0',
 
   PRIMARY KEY (`id`),
-  UNIQUE KEY (`order_id`)
+  UNIQUE KEY (`uni_key`)
 ) COMMENT = 'vacations orders';
 
 CREATE TABLE IF NOT EXISTS `vacations_main` (

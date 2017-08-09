@@ -28,7 +28,7 @@
         </div>
         <div class='row'>
           <div class='col-xs-12 col-sm-4 col-md-4 text-1'>Неиспользовано дней отпуска</div>
-          <div class='col-xs-12 col-sm-8 col-md-8 text-2'>%TOTAL_DAYS_LEFT%</div>
+          <div class='col-xs-12 col-sm-8 col-md-8 text-2'>%TOTAL_DAYS_LEFT% (по состоянию на %DATE%)</div>
         </div>
         <div class='row'>
           <div class='col-xs-12 col-sm-4 col-md-4 text-1'>Возможная длительность отпуска</div>
