@@ -476,8 +476,9 @@ return array of avaiable vacations
 =cut
 #**********************************************************
 sub _available_vacation_length {
-  $Vacations->info($user->{UID});
-  my $periods_list = vct_periods({ NO_PRINT => 1});
+  my ($attr) = @_;
+  $Vacations->info($attr->{UID} || $user->{UID});
+  my $periods_list = vct_periods({ NO_PRINT => 1, %$attr });
 
   my @periods = ();
   my @avaiable_length = ();
@@ -546,6 +547,7 @@ sub _available_vacation_length {
 =cut
 #**********************************************************
 sub vct_history {
+  my ($attr) = @_;
   
   $Vacations->info($user->{UID});
   if($Vacations->{ROLE} < 1) {
@@ -553,7 +555,8 @@ sub vct_history {
     return 1;
   }
 
-  my $vct_list = $Vacations->orders_list($Vacations->{TID});
+  my $tid = $attr->{TID} || $Vacations->{TID};
+  my $vct_list = $Vacations->orders_list($tid);
 
   my $table = $html->table({
     width         => '100%',
@@ -585,7 +588,8 @@ sub vct_history {
 sub vct_periods {
   my ($attr) = @_;
 
-  $Vacations->info($user->{UID});
+  $Vacations->info($attr->{UID} || $user->{UID});
+
   if($Vacations->{ROLE} < 1) {
     $html->message('warn', $lang{WARNING}, "Ваш доступ заблокирован. Обратитесь к администратору.");
     return 1;
@@ -822,6 +826,16 @@ sub vacations_emp_list {
   }
   elsif ($FORM{EDIT}) {
     $html->tpl_show(_include('vacations_emp_edit', 'Vacations'), \%FORM );
+    vct_periods({ UID => $FORM{UID} });
+    vct_history({ TID => $FORM{EDIT} });
+
+    my $av_days = _available_vacation_length({UID => $FORM{UID} });
+    my $av_length = '';
+    foreach (@$av_days) {
+      $av_length .= "$_, ";
+    }
+    $av_length =~ s/,\s$//;
+    $html->{OUTPUT} .= "Доступная длительность отпуска: $av_length";
   }
 
 
@@ -838,7 +852,7 @@ sub vacations_emp_list {
 
   foreach my $emp_line ( @$emp_list ) {
     my $fio = "$emp_line->{surname} $emp_line->{name} $emp_line->{mid_name}";
-    my $edit_button = $html->button("редактировать", "index=$index&EDIT=$emp_line->{tid}&OLD_SURNAME=$emp_line->{surname_genetive}&VCT_LEFT=$emp_line->{vct_left}&VCT_EARNED=$emp_line->{vct_earned}&sid=$sid", { class => 'change' });
+    my $edit_button = $html->button("редактировать", "index=$index&EDIT=$emp_line->{tid}&OLD_SURNAME=$emp_line->{surname_genetive}&VCT_LEFT=$emp_line->{vct_left}&VCT_EARNED=$emp_line->{vct_earned}&UID=$emp_line->{uid}&sid=$sid", { class => 'change' });
     if ($emp_line->{uid}) {
       $table->addrow($emp_line->{tid}, $fio, $emp_line->{surname_genetive}, $emp_line->{vct_left}, $emp_line->{vct_earned}, $roles[$emp_line->{role}], $edit_button);
     }
