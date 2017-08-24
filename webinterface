@@ -64,17 +64,6 @@ sub vacations_user_info {
   elsif ($FORM{GEN_SURNAME}) {
     $Vacations->emp_change({ TID => $Vacations->{TID}, SURNAME_GENETIVE => $FORM{GEN_SURNAME} });
   }
-
-  my $orders_list = $Vacations->orders_list($Vacations->{TID});
-  foreach (@$orders_list) {
-    $Vacations->{TOTAL_DAYS_LEFT} -= $_->{vct_days} if ($_->{order_date} gt "2017-07-31");
-  }
-  
-  my $import_date = '2017-12-31';
-  while ($DATE gt $import_date) {
-    $Vacations->{TOTAL_DAYS_LEFT} += $Vacations->{VCT_DAYS};
-    _add_years($import_date,1);
-  }
   
   my $av_days = _available_vacation_length();
   foreach (@$av_days) {
@@ -84,6 +73,8 @@ sub vacations_user_info {
       last;
     }
   }
+  
+  $Vacations->{TOTAL_DAYS_LEFT} = @$av_days[-1];
 
   $Vacations->{START_DATE} = _date_to_str($Vacations->{START_DATE});
   $Vacations->{DATE} = _date_to_str($DATE);
@@ -204,9 +195,15 @@ sub orders_import {
     $hash{VCT_START} = _str_to_date($hash{VCT_START});
     $hash{VCT_END} = _str_to_date($hash{VCT_END});
 
-    $Vacations->add('vacations_orders', \%hash);
+    if ($hash{USED} == 1) {
+      $Vacations->add('vacations_orders', \%hash);
+    }
+    else {
+      $Vacations->order_del($hash{UNI_KEY});
+    }
+
     if ( _error_show($Vacations) ) {
-      $html->message('warn', "$lang{WARNING}", "Ошибка при добавлении приказа $hash{ORDER_ID}");
+      $html->message('war11n', "$lang{WARNING}", "Ошибка при добавлении приказа $hash{ORDER_ID}");
     }
     else {
       $counter++;
@@ -444,7 +441,7 @@ return array of dates not available for end vacation
 sub _not_available_dates {
   my ($date) = @_;
   my $av_len = _available_vacation_length();
-  
+    
   my $lenght = 1;
   my $counter = 0;
   my $date_list = '';
@@ -453,8 +450,9 @@ sub _not_available_dates {
   foreach (@$holidays) {
     $holyhash{$_->{date}} = 1;
   }
-  
+
   while ($lenght <= @$av_len[-1] ) {
+    
     if (!$holyhash{$date}) {
       if ( $lenght == $av_len->[$counter]) {
         $counter++;
@@ -495,59 +493,46 @@ sub _available_vacation_length {
 
   while (@periods > 0 && $periods[0] == 0) {
     shift @periods;
+    shift @$periods_list;
   }
 
   if ( @periods < 1 ) {
     return [ ];
   }
 
-  if ( @periods == 1) {
-    my $start_period = $periods_list->[-1]->{start_period};
-    my $days_used_in_current_period = $periods_list->[-1]->{days_used};
-    my $main_vacation_used = 0;
+  my $days_used_in_current_period = $periods_list->[0]->{days_used};
+  my $main_vacation_used = 0;
 
-    if ($days_used_in_current_period > 14) {
-      my $orders_list = $Vacations->orders_list($Vacations->{TID});
-      @$orders_list = reverse @$orders_list;
-      foreach (@$orders_list) {
-        last if ($days_used_in_current_period < 14);
-        $main_vacation_used = 1 if ($_->{vct_days} >= 14);
-        $days_used_in_current_period -= $_->{vct_days};
-      }
+  if ($days_used_in_current_period > 14) {
+    my $orders_list = $Vacations->orders_list($Vacations->{TID});
+    $orders_list //= [ ];
+    @$orders_list = reverse @$orders_list;
+    foreach (@$orders_list) {
+      last if ($days_used_in_current_period < 14);
+      $main_vacation_used = 1 if ($_->{vct_days} >= 14);
+      $days_used_in_current_period -= $_->{vct_days};
     }
-    
-    if ($main_vacation_used == 1) {
-      @avaiable_length = (1 .. $periods[0]); 
-    }
-    elsif ( $periods[0] < (18 - $periods_list->[-1]->{days_used}) ) {
-      @avaiable_length = (1 .. $periods[0]);
-    }
-    elsif ( $periods[0] < 14 ) {
-      @avaiable_length = (1 .. (18 - $periods_list->[-1]->{days_used}) );
-    }
-    else {
-      @avaiable_length = (1 .. (18 - $periods_list->[-1]->{days_used}), 14 .. $periods[0]);
-    }
+  }
 
+  if ($main_vacation_used == 1) {
+    @avaiable_length = (1 .. $periods[0]); 
+  }
+  elsif ( $periods_list->[0]->{days_used} < 6 || $periods_list->[0]->{days_used} > 18 || ($periods[0] <= 18 - $periods_list->[0]->{days_used} ) ) {
+    @avaiable_length = (1 .. $periods[0]);
+  }
+  elsif ( $periods[0] < 14 ) {
+    @avaiable_length = (1 .. (18 - $periods_list->[0]->{days_used}) );
   }
   else {
-    if ( $periods[0] < 14 ) {
-      @avaiable_length = (1 .. $periods[0]);
-    }
-    else {
-       @avaiable_length = (14 .. $periods[0]);
-    }
+    @avaiable_length = (1 .. (18 - $periods_list->[0]->{days_used}), 14 .. $periods[0]);
+  }
 
+  if (@periods > 1) {
     my $unused_days = 0;
     foreach (2 .. @periods)  {
       $unused_days += $periods[$_ - 1];
     }
-    if ($avaiable_length[-1] < 14 && @periods > 2) {
-      push  @avaiable_length, (($periods[0] + 14) .. ($periods[0] + $unused_days)); 
-    }
-    else {
-      push  @avaiable_length, (($periods[0] + 1) .. ($periods[0] + $unused_days));
-    }
+    push  @avaiable_length, (($periods[0] + 1) .. ($periods[0] + $unused_days));
   }
 
   return \@avaiable_length;
@@ -977,6 +962,19 @@ sub _period_days {
 }
 
 #**********************************************************
+=head2 _day_of_week($date)
+
+=cut
+#**********************************************************
+sub _day_of_week {
+  my ($date) = @_;
+
+  my $day_of_week = _period_days('2017-07-31', $date) % 7;
+
+  return $day_of_week;
+}
+
+#**********************************************************
 =head2 import_menu($date_start, $date_end)
 
 =cut
@@ -1172,22 +1170,6 @@ sub vacation_request {
     $Vacations->{HOLYDAYS} = scalar @$holidays if (ref $holidays eq 'ARRAY');
     my $days_used = $Vacations->{VCT_DAYS} - $Vacations->{HOLYDAYS};
     $Vacations->{VCT_USE_DAYS} = $days_used;
-    
-    # my $periods_list = vct_periods({ NO_PRINT => 1});
-    # my $periods_text = "";
-    # foreach (@$periods_list) {
-    #   my $days_in_period = $_->{days_accrued} - $_->{days_used};
-    #   next unless ($days_in_period);
-    #   if ($days_in_period >= $days_used ) {
-    #     $periods_text .= _date_to_str($_->{start_period}) . " - " . _date_to_str($_->{end_period}) . " : $days_used";
-    #     last;
-    #   }
-    #   else {
-    #     $periods_text .= _date_to_str($_->{start_period}) . " - " . _date_to_str($_->{end_period}) . " : $days_in_period,<br>";
-    #     $days_used -= $days_in_period;
-    #   }
-    # }
-    # $Vacations->{PERIODS} = $periods_text;
 
     $Vacations->{PRINT_BUTTON1} = $html->button("Создать заявление", "qindex=$index&pdf=1&print=1&start=$FORM{VCT_START}&end=$FORM{VCT_END}", { BUTTON => 2, target => '_blank' });
     $Vacations->{PRINT_BUTTON2} = $html->button("Создать заявление", "qindex=$index&pdf=1&print=1&start=$FORM{VCT_START}&end=$FORM{VCT_END}&AUTO_REQ=1", { BUTTON => 2, target => '_blank' });
@@ -1212,6 +1194,24 @@ sub vacation_request {
     }
     $Vacations->{DISABLE_DATES2} .= $not_av_dates;
     $Vacations->{STARTD2} = $FORM{VCT_START};
+
+    my $day_of_week = _day_of_week($FORM{VCT_START});
+
+    if ($day_of_week == 0) {
+      $Vacations->{STARTD2} = _add_days($FORM{VCT_START}, 1);
+    }
+    elsif ($day_of_week == 6) {
+      $Vacations->{STARTD2} = _add_days($FORM{VCT_START}, 2);
+    }
+    elsif ($day_of_week == 1) {
+      $Vacations->{DISABLE_DATES2} .= "'" . _add_days($FORM{VCT_START}, 3) . "', '" . _add_days($FORM{VCT_START}, 4) . "', ";
+    }
+    elsif ($day_of_week == 2) {
+      $Vacations->{DISABLE_DATES2} .= "'" . _add_days($FORM{VCT_START}, 3) . "', ";
+    }
+    $Vacations->{DISABLE_DATES2} .= "'2017-01-01'";
+    
+    
     # $Vacations->{END2} = _add_days($FORM{VCT_START}, $Vacations->{TOTAL_DAYS_LEFT} - 1 );
     # $html->tpl_show(_include('vacations_date_select', 'Vacations'), $Vacations);
     # return 1;
@@ -1309,4 +1309,5 @@ sub vacations_print {
 
   return 1;
 }
+
 1

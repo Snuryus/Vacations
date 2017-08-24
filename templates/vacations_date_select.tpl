@@ -41,6 +41,11 @@
   <input type='hidden' name='sid' value='$sid'>
   <div class='box box-theme box-form text-center'>
     <div class='box-body'>
+      <div class='col-md-12 text-left' style="padding-bottom: 15px;">
+        <li>Согласно законодательству Украины в каждом из периодов отпусков, должен быть отпуск длительностью не менее 14 дней.</li>
+        <li>Отпуск не может быть исключительно из выходных дней.</li>
+        <li>При длительности отпуска более 4 дней он должен содержать хотя бы один выходной.</li>
+      </div>
       <div class='row'>
         <div class='col-md-6'>
           <b>Дата начала отпуска</b>

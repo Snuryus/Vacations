@@ -313,6 +313,25 @@ sub orders_list {
 }
 
 #**********************************************************
+=head2 order_del($uni_key)
+
+=cut
+#**********************************************************
+sub order_del {
+  my $self = shift;
+  my ($uni_key) = @_;
+  
+  $self->query2( "DELETE 
+    FROM vacations_orders 
+    WHERE uni_key= ?",
+    'do', 
+    { Bind => [ $uni_key ] } 
+  );
+  
+  return $self;
+}
+
+#**********************************************************
 =head2 periods_list($uid, $attr)
 
 =cut
@@ -355,7 +374,7 @@ sub holidays {
   
   my $WHERE =  $self->search_former($attr, [
       ['DATE',           'DATE',        'date',                1 ],
-      ['WORKDAY',        'INT',         'workday',            1 ],
+      ['WORKDAY',        'INT',         'workday',             1 ],
       ['FROM_DATE|TO_DATE','DATE',"DATE_FORMAT(date, '%Y-%m-%d')"],
     ],
     { WHERE => 1 }
