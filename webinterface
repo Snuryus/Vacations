@@ -533,8 +533,22 @@ sub _available_vacation_length {
     foreach (2 .. @periods)  {
       $unused_days += $periods[$_ - 1];
     }
-    push  @avaiable_length, (($periods[0] + 1) .. ($periods[0] + $unused_days));
+    push @avaiable_length, (($periods[0] + 1) .. ($periods[0] + $unused_days));
   }
+
+  my ($year) = (split '-', $DATE)[0];
+  my $cr_days = int (_period_days($DATE, "$year-12-31") * $Vacations->{VCT_DAYS} / 365.25 + 0.5);
+  my $rl_days = $avaiable_length[-1] - $cr_days;
+
+  while ($avaiable_length[-1] > $rl_days ) {
+    pop @avaiable_length;
+    last if (@avaiable_length < 1);
+  }
+  
+  if (@avaiable_length < 1) {
+    @avaiable_length =(0);
+  }
+
 
   return \@avaiable_length;
 }
@@ -557,6 +571,8 @@ sub vct_history {
 
   my $tid = $attr->{TID} || $Vacations->{TID};
   my $vct_list = $Vacations->orders_list($tid);
+
+  @$vct_list = reverse @$vct_list;
 
   my $table = $html->table({
     width         => '100%',
@@ -1265,9 +1281,11 @@ sub vacations_print {
   $Vacations->{POSITION2} = $arr[1];
   $Vacations->{POSITION3} = $arr[2];
 
-  $Vacations->{TEXT1} = "Генеральному директору";
+  my $company_head = $Vacations->head_info($Vacations->{COMPANY});
+
+  $Vacations->{TEXT1} = $company_head->[0]->{position};
   $Vacations->{TEXT2} = $Vacations->{COMPANY};
-  $Vacations->{TEXT3} = "п.Петеру Керекдярто";
+  $Vacations->{TEXT3} = $company_head->[0]->{fio};;
   $Vacations->{TEXT4} = "ЗАЯВА";
 
   if ($FORM{AUTO_REQ}) {
@@ -1321,6 +1339,44 @@ sub vacations_print {
 
   $html->tpl_show(_include('vacations_print_2', 'Vacations'), $Vacations, {TITLE => "print.pdf"});
 
+  return 1;
+}
+
+
+#**********************************************************
+=head2 company_head()
+
+=cut
+#**********************************************************
+sub company_head {
+  if ($FORM{del}) {
+    $Vacations->head_del($FORM{del});
+  }
+  elsif ($FORM{ADD}) {
+    $Vacations->head_add(\%FORM);
+  }
+  elsif ($FORM{add}) {
+    $html->tpl_show(_include('vacations_head', 'Vacations'), { BTN_ACT => 'ADD', BTN_NAME => 'Добавить' });
+  }
+
+  my $list = $Vacations->head_list();
+
+  my $table = $html->table({
+    width         => '100%',
+    caption       => "Глава компании",
+    border        => 1,
+    title_plain   => [ "Компания", "Должность", "ФИО"],
+    ID            => 'log',
+    MENU          => "$lang{ADD}:index=$index&add=1:btn bg-olive margin;",
+  });
+
+  foreach (@$list) {
+    my $del_btn = $html->button($lang{DEL}, "index=$index&del=$_->{id}", { class => 'del' }) ;
+    $table->addrow($_->{company}, $_->{position}, $_->{fio}, $del_btn);
+  }
+
+  print $table->show();
+  
   return 1;
 }
 

@@ -66,3 +66,12 @@ CREATE TABLE IF NOT EXISTS `vacations_log` (
 
   PRIMARY KEY (`id`)
 ) COMMENT = 'vacations log';
+
+CREATE TABLE IF NOT EXISTS `vacations_head` (
+  `id` SMALLINT(6) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `company` VARCHAR(200) NOT NULL DEFAULT '',
+  `position` VARCHAR(200) NOT NULL DEFAULT '',
+  `fio` VARCHAR(120) NOT NULL DEFAULT '',
+
+  PRIMARY KEY (`id`)
+) COMMENT = 'vacations company head';

@@ -467,4 +467,110 @@ sub log_add {
 
 
 
+
+
+#**********************************************************
+=head2 head_add($attr)
+
+=cut
+#**********************************************************
+sub head_add {
+  my $self = shift;
+  my ($attr) = @_;
+
+  $attr->{company} =~ s/\\//g;
+
+  $self->query2( "INSERT INTO vacations_head
+    (company, position, fio)
+    VALUES (?, ?, ?)",
+    'do', 
+    { Bind => [ $attr->{company}, $attr->{position}, $attr->{fio} ] } 
+  );
+  
+  return $self;
+}
+
+#**********************************************************
+=head2 head_del($id)
+
+=cut
+#**********************************************************
+sub head_del {
+  my $self = shift;
+  my ($id) = @_;
+  
+  $self->query2( "DELETE 
+    FROM vacations_head 
+    WHERE id= ?",
+    'do', 
+    { Bind => [ $id ] } 
+  );
+  
+  return $self;
+}
+
+#**********************************************************
+=head2 head_change($id, ...)
+
+=cut
+#**********************************************************
+sub head_change {
+  my $self = shift;
+  my ($id, $company, $position, $fio) = @_;
+
+  $self->query2( "UPDATE vacations_head
+    SET company= ?, position= ?, fio=?
+    WHERE id= ?",
+    'do', 
+    { Bind => [ $company, $position, $fio, $id ] } 
+  );
+  
+  return $self;
+}
+
+#**********************************************************
+=head2 head_list($id, ...)
+
+=cut
+#**********************************************************
+sub head_list {
+  my $self = shift;
+  my ($company) = @_;
+
+  $self->query2("SELECT id,
+    company,
+    position,
+    fio
+      FROM vacations_head",
+    undef,
+    { COLS_NAME => 1 }
+  );
+
+  return $self->{list};
+}
+
+
+#**********************************************************
+=head2 head_info()
+
+=cut
+#**********************************************************
+sub head_info {
+  my $self = shift;
+  my ($company) = @_;
+
+  $self->query2("SELECT id,
+    company,
+    position,
+    fio
+      FROM vacations_head
+      WHERE company= ?",
+    undef,
+    { Bind => [ $company ], COLS_NAME => 1 }
+  );
+
+  return $self->{list};
+}
+
+
 1
