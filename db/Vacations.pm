@@ -466,9 +466,6 @@ sub log_add {
 }
 
 
-
-
-
 #**********************************************************
 =head2 head_add($attr)
 
@@ -504,25 +501,6 @@ sub head_del {
     WHERE id= ?",
     'do', 
     { Bind => [ $id ] } 
-  );
-  
-  return $self;
-}
-
-#**********************************************************
-=head2 head_change($id, ...)
-
-=cut
-#**********************************************************
-sub head_change {
-  my $self = shift;
-  my ($id, $company, $position, $fio) = @_;
-
-  $self->query2( "UPDATE vacations_head
-    SET company= ?, position= ?, fio=?
-    WHERE id= ?",
-    'do', 
-    { Bind => [ $company, $position, $fio, $id ] } 
   );
   
   return $self;

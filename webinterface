@@ -65,7 +65,7 @@ sub vacations_user_info {
     $Vacations->emp_change({ TID => $Vacations->{TID}, SURNAME_GENETIVE => $FORM{GEN_SURNAME} });
   }
   
-  my $av_days = _available_vacation_length();
+  my $av_days = _available_vacation_length({ REAL => 1 });
   foreach (@$av_days) {
     $Vacations->{AVAIABLE_LENGTH} .= "$_, ";
     if ($_ > 15) {
@@ -440,7 +440,7 @@ return array of dates not available for end vacation
 #**********************************************************
 sub _not_available_dates {
   my ($date) = @_;
-  my $av_len = _available_vacation_length();
+  my $av_len = _available_vacation_length({ CREDIT => 1 });
     
   my $lenght = 1;
   my $counter = 0;
@@ -536,18 +536,18 @@ sub _available_vacation_length {
     push @avaiable_length, (($periods[0] + 1) .. ($periods[0] + $unused_days));
   }
 
-  my ($year) = (split '-', $DATE)[0];
-  my $cr_days = int (_period_days($DATE, "$year-12-31") * $Vacations->{VCT_DAYS} / 365.25 + 0.5);
-  my $rl_days = $avaiable_length[-1] - $cr_days;
+  # my ($year) = (split '-', $DATE)[0];
+  # my $cr_days = int (_period_days($DATE, "$year-12-31") * $Vacations->{VCT_DAYS} / 365.25 + 0.5);
+  # my $rl_days = $avaiable_length[-1] - $cr_days;
 
-  while ($avaiable_length[-1] > $rl_days ) {
-    pop @avaiable_length;
-    last if (@avaiable_length < 1);
-  }
+  # while ($avaiable_length[-1] > $rl_days ) {
+  #   pop @avaiable_length;
+  #   last if (@avaiable_length < 1);
+  # }
   
-  if (@avaiable_length < 1) {
-    @avaiable_length =(0);
-  }
+  # if (@avaiable_length < 1) {
+  #   @avaiable_length =(0);
+  # }
 
 
   return \@avaiable_length;
@@ -572,7 +572,7 @@ sub vct_history {
   my $tid = $attr->{TID} || $Vacations->{TID};
   my $vct_list = $Vacations->orders_list($tid);
 
-  @$vct_list = reverse @$vct_list;
+  @$vct_list = reverse @$vct_list if (ref $vct_list eq 'ARRAY');
 
   my $table = $html->table({
     width         => '100%',
@@ -580,11 +580,13 @@ sub vct_history {
     border        => 1,
     title_plain   => [ "Приказ №", "Дата приказа", "Начало отпуска", "Конец отпуска", "Длительность отпуска" ],
     ID            => 'orders',
+    MENU          => "Показать все:index=$index&SHOW_ALL=1:btn bg-primary margin;",
   });
   
   my $total_days = 0;
 
   foreach my $vct_line ( @$vct_list ) {
+    last if (!$FORM{SHOW_ALL} && $vct_line->{order_date} lt _add_years($DATE, -1));
     $table->addrow($vct_line->{order_id}, _date_to_str($vct_line->{order_date}), _date_to_str($vct_line->{vct_start}), _date_to_str($vct_line->{vct_end}), $vct_line->{vct_days} );
     $total_days += $vct_line->{vct_days};
   }
@@ -603,6 +605,8 @@ sub vct_history {
 #**********************************************************
 sub vct_periods {
   my ($attr) = @_;
+
+  # $attr->{REAL} = 1;
 
   $Vacations->info($attr->{UID} || $user->{UID});
 
@@ -633,7 +637,7 @@ sub vct_periods {
   
   my $orders_list = $Vacations->orders_list($Vacations->{TID});
   foreach (@$orders_list) {
-    $db_left -= $_->{vct_days} if ($_->{order_date} gt "2017-06-30")
+    $db_left -= $_->{vct_days} if ($_->{order_date} gt "2017-07-31")
   }
   
   my $import_date = '2017-12-31';
@@ -653,8 +657,17 @@ sub vct_periods {
   my $date = $Vacations->{START_DATE};
   my $periods_list = ();
   my ($year, undef, undef) = split '-', $DATE;
-  while (_add_years($date, 1) lt "$year-12-31") {
-    push (@$periods_list, { start_period => $date, end_period => _add_days(_add_years($date, 1), -1), days_accrued => 32 });
+
+  my $end_of_last_period = "$year-12-31";
+  if ($attr->{CREDIT}) {
+    $end_of_last_period = _add_days($DATE, 182);
+  }
+  elsif ($attr->{REAL}) {
+    $end_of_last_period = $DATE;
+  }
+
+  while (_add_years($date, 1) lt $end_of_last_period) {
+    push (@$periods_list, { start_period => $date, end_period => _add_days(_add_years($date, 1), -1), days_accrued => $Vacations->{VCT_DAYS} });
     $date = _add_years($date, 1);
 
     $total_days_accrued += $Vacations->{VCT_DAYS};
@@ -662,10 +675,13 @@ sub vct_periods {
   
   # my $days_in_last_period = int (_period_days($date, $DATE) * 32 / 365);
   # push (@$periods_list, { start_period => $date, end_period => $DATE, , days_accrued => $days_in_last_period });
-  my $days_in_last_period = int (_period_days($date, "$year-12-31") * $Vacations->{VCT_DAYS} / 365.25 + 0.5);
-  push (@$periods_list, { start_period => $date, end_period => "$year-12-31", days_accrued => $days_in_last_period });
+
+  my $days_in_last_period = int (_period_days($date, $end_of_last_period) * $Vacations->{VCT_DAYS} / 365.25 + 0.5);
+  push (@$periods_list, { start_period => $date, end_period => $end_of_last_period, days_accrued => $days_in_last_period });
   $total_days_accrued += $days_in_last_period;
   $db_earned += $days_in_last_period;
+
+  $db_earned -= $Vacations->{VCT_DAYS} if ($date lt "2017-01-01");
   
   if ($total_days_accrued != $db_earned) {
     unshift (@$periods_list, { start_period => "Другое", end_period => "", days_accrued => $db_earned - $total_days_accrued });
@@ -1318,7 +1334,7 @@ sub vacations_print {
   $Vacations->{SIGNATURE2} = "підпис";
   $Vacations->{SIGNATURE3} = "Підпис безпосереднього керівника: ___________________";
 
-  my $periods_list = vct_periods({ NO_PRINT => 1});
+  my $periods_list = vct_periods({ NO_PRINT => 1, CREDIT => 16});
   my $periods_text = "";
   my $counter = 1;
   $Vacations->{"PERIODS0"} = "Відпустка за період:";
